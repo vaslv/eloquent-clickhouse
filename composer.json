@@ -1,0 +1,30 @@
+{
+    "name": "timeleads/eloquent-clickhouse",
+    "description": "Laravel Eloquent driver for ClickHouse",
+    "type": "library",
+    "license": "MIT",
+    "version": "1.0",
+    "authors": [
+        {
+            "name": "Andrei Vasilev",
+            "email": "andrei@vaslv.ru"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/database": "^12.0",
+        "smi2/phpclickhouse": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Timeleads\\EloquentClickHouse\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Timeleads\\EloquentClickHouse\\ServiceProvider"
+            ]
+        }
+    }
+}
