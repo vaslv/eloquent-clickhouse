@@ -22,6 +22,26 @@ class QueryGrammar extends PostgresGrammar
 
     public function parameter($value): float|int|string|Expression
     {
-        return $this->getValue($value);
+        if ($this->isExpression($value)) {
+            return $this->getValue($value);
+        }
+
+        if (is_null($value)) {
+            return 'NULL';
+        }
+
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return "'".$value->format($this->getDateFormat())."'";
+        }
+
+        if (is_string($value)) {
+            return "'".str_replace("'", "''", $value)."'";
+        }
+
+        return $value;
     }
 }
