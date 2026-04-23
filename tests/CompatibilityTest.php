@@ -58,7 +58,7 @@ final class CompatibilityTest extends TestCase
 
     public function test_service_provider_registers_clickhouse_driver(): void
     {
-        $app = new Container();
+        $app = new Container;
         $factory = new class
         {
             public array $extensions = [];
