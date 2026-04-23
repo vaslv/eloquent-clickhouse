@@ -1,0 +1,41 @@
+name: Compatibility
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - laravel: "12"
+            php: "8.4"
+            composer_flags: "--prefer-lowest"
+          - laravel: "13"
+            php: "8.4"
+            composer_flags: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer update --no-interaction --prefer-dist ${{ matrix.composer_flags }}
+
+      - name: Verify Illuminate major version
+        run: php -r "require 'vendor/autoload.php'; $version = \Composer\InstalledVersions::getPrettyVersion('illuminate/database'); if (!preg_match('/^v?${{ matrix.laravel }}\\./', $version)) { fwrite(STDERR, 'Unexpected illuminate/database version: '.$version.PHP_EOL); exit(1);} echo $version.PHP_EOL;"
+
+      - name: Run tests
+        run: composer test
