@@ -35,7 +35,8 @@ jobs:
         run: composer update --no-interaction --prefer-dist ${{ matrix.composer_flags }}
 
       - name: Verify Illuminate major version
-        run: php -r "require 'vendor/autoload.php'; $version = \Composer\InstalledVersions::getPrettyVersion('illuminate/database'); if (!preg_match('/^v?${{ matrix.laravel }}\\./', $version)) { fwrite(STDERR, 'Unexpected illuminate/database version: '.$version.PHP_EOL); exit(1);} echo $version.PHP_EOL;"
+        run: |
+          php -r "require 'vendor/autoload.php'; $version = \Composer\InstalledVersions::getPrettyVersion('illuminate/database'); if (!preg_match('/^v?${{ matrix.laravel }}\\./', $version)) { fwrite(STDERR, 'Unexpected illuminate/database version: '.$version.PHP_EOL); exit(1);} echo $version.PHP_EOL;"
 
       - name: Run tests
         run: composer test

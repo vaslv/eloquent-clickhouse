@@ -71,6 +71,7 @@ final class CompatibilityTest extends TestCase
 
         $app->instance('db', $factory);
 
+        /** @noinspection PhpParamsInspection */
         $provider = new ServiceProvider($app);
         $provider->register();
         $provider->boot();
