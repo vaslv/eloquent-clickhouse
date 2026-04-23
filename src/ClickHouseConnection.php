@@ -33,7 +33,7 @@ class ClickHouseConnection extends Connection
         return new SchemaGrammar($this);
     }
 
-    public function select($query, $bindings = [], $useReadPdo = true): array
+    public function select($query, $bindings = [], $useReadPdo = true, array $fetchUsing = []): array
     {
         $statement = $this->client->select($query);
 
