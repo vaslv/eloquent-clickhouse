@@ -13,11 +13,26 @@ class QueryGrammar extends PostgresGrammar
         return $this->dateBasedWhere('toDate', $query, $where);
     }
 
+    protected function whereTime(Builder $query, $where): string
+    {
+        return 'formatDateTime('.$this->wrap($where['column']).", '%H:%M:%S') "
+            .$where['operator'].' '.$this->parameter($where['value']);
+    }
+
     protected function dateBasedWhere($type, Builder $query, $where): string
     {
-        $value = $this->parameter($where['value']);
+        // Map Laravel's date-part keywords to ClickHouse functions. whereDate passes the
+        // function name ('toDate') directly. parameter() already quotes the value, so it must
+        // not be quoted again here.
+        $function = match ($type) {
+            'year' => 'toYear',
+            'month' => 'toMonth',
+            'day' => 'toDayOfMonth',
+            default => $type,
+        };
 
-        return $type.'('.$this->wrap($where['column']).') '.$where['operator'].' \''.$value.'\'';
+        return $function.'('.$this->wrap($where['column']).') '
+            .$where['operator'].' '.$this->parameter($where['value']);
     }
 
     public function parameter($value): float|int|string|Expression
