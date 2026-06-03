@@ -35,16 +35,31 @@ class ClickHouseConnection extends Connection
 
     public function select($query, $bindings = [], $useReadPdo = true, array $fetchUsing = []): array
     {
-        $statement = $this->client->select($query);
+        return $this->run($query, $bindings, function ($query, $bindings) {
+            if ($this->pretending()) {
+                return [];
+            }
 
-        return $statement->rows();
+            return $this->client->select($this->inlineBindings($query, $bindings))->rows();
+        });
     }
 
-    public function insert($query, $bindings = []): true
+    public function insert($query, $bindings = []): bool
     {
-        $this->client->write($query);
+        return $this->run($query, $bindings, function ($query, $bindings) {
+            if ($this->pretending()) {
+                return true;
+            }
 
-        return true;
+            $this->client->write($this->inlineBindings($query, $bindings));
+
+            return true;
+        });
+    }
+
+    protected function inlineBindings(string $query, array $bindings): string
+    {
+        return $this->getQueryGrammar()->substituteBindingsIntoRawSql($query, $bindings);
     }
 
     public function beginTransaction() {}

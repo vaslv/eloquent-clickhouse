@@ -65,4 +65,26 @@ final class QueryGrammarTest extends TestCase
         self::assertStringNotContainsString('::time', $sql);
         self::assertStringContainsString('formatDateTime("created_at"', $sql);
     }
+
+    public function test_parameter_escapes_backslash(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        self::assertSame("'\\\\'", $grammar->parameter('\\'));
+    }
+
+    public function test_parameter_doubles_single_quote(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        self::assertSame("'O''Brien'", $grammar->parameter("O'Brien"));
+    }
+
+    public function test_substitute_bindings_inlines_and_escapes(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        self::assertSame('select 5', $grammar->substituteBindingsIntoRawSql('select ?', [5]));
+        self::assertSame("select 'O''Brien'", $grammar->substituteBindingsIntoRawSql('select ?', ["O'Brien"]));
+    }
 }

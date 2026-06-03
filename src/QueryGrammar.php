@@ -54,9 +54,56 @@ class QueryGrammar extends PostgresGrammar
         }
 
         if (is_string($value)) {
-            return "'".str_replace("'", "''", $value)."'";
+            return $this->escapeStringLiteral($value);
         }
 
-        return $value;
+        if (is_int($value) || is_float($value)) {
+            return $value;
+        }
+
+        return $this->escapeStringLiteral((string) $value);
+    }
+
+    /**
+     * Inline bindings into raw SQL using ClickHouse-safe quoting. Mirrors the framework's
+     * literal-aware scanner but escapes through parameter() instead of Connection::escape(),
+     * which would call PDO::quote() on the non-PDO smi2 client.
+     */
+    public function substituteBindingsIntoRawSql($sql, $bindings): string
+    {
+        $query = '';
+        $bindingIndex = 0;
+        $isStringLiteral = false;
+        $length = strlen($sql);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $sql[$i];
+            $nextChar = $sql[$i + 1] ?? null;
+
+            if (in_array($char.$nextChar, ["\\'", "''", '??'], true)) {
+                $query .= $char.$nextChar;
+                $i++;
+            } elseif ($char === "'") {
+                $query .= $char;
+                $isStringLiteral = ! $isStringLiteral;
+            } elseif ($char === '?' && ! $isStringLiteral) {
+                $query .= (string) $this->parameter($bindings[$bindingIndex++] ?? '?');
+            } else {
+                $query .= $char;
+            }
+        }
+
+        return $query;
+    }
+
+    private function escapeStringLiteral(string $value): string
+    {
+        // ClickHouse processes backslash escapes inside string literals, so backslashes must be
+        // escaped before quotes; otherwise a value such as \' could break out of the literal.
+        return "'".str_replace(
+            ['\\', "'", "\0", "\r", "\n", "\t"],
+            ['\\\\', "''", '\\0', '\\r', '\\n', '\\t'],
+            $value,
+        )."'";
     }
 }
