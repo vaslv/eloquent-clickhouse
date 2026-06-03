@@ -1,0 +1,54 @@
+name: eloquent-clickhouse
+
+# Isolated test stack for the package. Ports 18123/19000 are used on the host so this
+# does not collide with any other ClickHouse you may already be running.
+services:
+  clickhouse:
+    # NOTE: pin a concrete tag (e.g. clickhouse/clickhouse-server:25.3) for full
+    # reproducibility. We default to the image already cached locally to avoid a large pull.
+    image: clickhouse/clickhouse-server:latest
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE:-eloquent_test}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USERNAME:-eloquent}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-secret}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "18123:8123"   # HTTP interface
+      - "19000:9000"   # native protocol
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --host 127.0.0.1 --user ${CLICKHOUSE_USERNAME:-eloquent} --password ${CLICKHOUSE_PASSWORD:-secret} --query 'SELECT 1' || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.4}
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-eloquent_test}
+      CLICKHOUSE_USERNAME: ${CLICKHOUSE_USERNAME:-eloquent}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-secret}
+    volumes:
+      - .:/app
+      - composer-cache:/composer
+    working_dir: /app
+    command: ["sleep", "infinity"]
+
+volumes:
+  clickhouse-data:
+  composer-cache:

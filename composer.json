@@ -31,7 +31,9 @@
     },
     "scripts": {
         "format": "pint",
-        "test": "phpunit"
+        "test": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration",
+        "test:all": "phpunit"
     },
     "extra": {
         "laravel": {
