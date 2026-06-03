@@ -20,10 +20,13 @@ class ClickHouseConnector implements ConnectorInterface
         $client = new Client([
             'host' => $config['host'],
             'port' => $config['port'],
-            'database' => $config['database'],
             'username' => $config['username'],
             'password' => $config['password'],
         ]);
+
+        // The smi2 client ignores a 'database' connect param and defaults to 'default';
+        // the database must be selected explicitly via settings.
+        $client->database($config['database']);
 
         if (! empty($config['settings'])) {
             $client->settings()->apply($config['settings']);
