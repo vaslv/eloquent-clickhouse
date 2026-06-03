@@ -3,6 +3,7 @@
 namespace Timeleads\EloquentClickHouse;
 
 use ClickHouseDB\Client;
+use Generator;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Processors\Processor;
 
@@ -60,6 +61,57 @@ class ClickHouseConnection extends Connection
     protected function inlineBindings(string $query, array $bindings): string
     {
         return $this->getQueryGrammar()->substituteBindingsIntoRawSql($query, $bindings);
+    }
+
+    public function statement($query, $bindings = []): bool
+    {
+        return $this->run($query, $bindings, function ($query, $bindings) {
+            if ($this->pretending()) {
+                return true;
+            }
+
+            $this->client->write($this->inlineBindings($query, $bindings));
+
+            return true;
+        });
+    }
+
+    public function affectingStatement($query, $bindings = []): int
+    {
+        return $this->run($query, $bindings, function ($query, $bindings) {
+            if ($this->pretending()) {
+                return 0;
+            }
+
+            $this->client->write($this->inlineBindings($query, $bindings));
+
+            // ClickHouse's HTTP interface does not report an affected-row count.
+            return 0;
+        });
+    }
+
+    public function unprepared($query): bool
+    {
+        return $this->run($query, [], function ($query) {
+            if ($this->pretending()) {
+                return true;
+            }
+
+            $this->client->write($query);
+
+            return true;
+        });
+    }
+
+    public function cursor($query, $bindings = [], $useReadPdo = true, array $fetchUsing = []): Generator
+    {
+        if ($this->pretending()) {
+            return;
+        }
+
+        foreach ($this->client->select($this->inlineBindings($query, $bindings))->rows() as $row) {
+            yield $row;
+        }
     }
 
     public function beginTransaction() {}
