@@ -12,6 +12,19 @@ class QueryGrammar extends PostgresGrammar
 {
     use EscapesClickHouseStrings;
 
+    /**
+     * Operators ClickHouse understands. Replaces the inherited Postgres extras
+     * (@>, ?|, is distinct from, ...) which compile to invalid ClickHouse SQL —
+     * and whose bare '?' would additionally collide with binding substitution.
+     * (The query Builder keeps its own permissive default list on top of this.)
+     *
+     * @var string[]
+     */
+    protected $operators = [
+        '=', '<', '>', '<=', '>=', '<>', '!=',
+        'like', 'not like', 'ilike', 'not ilike',
+    ];
+
     protected function whereDate(Builder $query, $where): string
     {
         return $this->dateBasedWhere('toDate', $query, $where);

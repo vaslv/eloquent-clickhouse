@@ -109,6 +109,36 @@ final class QueryGrammarTest extends TestCase
         self::assertSame("select 'O''Brien'", $grammar->substituteBindingsIntoRawSql('select ?', ["O'Brien"]));
     }
 
+    public function test_substitute_bindings_ignores_placeholders_inside_literals(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        // A ? inside a \'-escaped literal is data, not a placeholder.
+        self::assertSame(
+            "select 'it\\'s ?', 1",
+            $grammar->substituteBindingsIntoRawSql("select 'it\\'s ?', ?", [1]),
+        );
+
+        // Double-backslash then ? inside a literal: still data.
+        self::assertSame(
+            "select 'prefix\\\\?', 2",
+            $grammar->substituteBindingsIntoRawSql("select 'prefix\\\\?', ?", [2]),
+        );
+
+        // ?? stays an escaped question mark, as in the framework scanner.
+        self::assertSame('select ??, 3', $grammar->substituteBindingsIntoRawSql('select ??, ?', [3]));
+    }
+
+    public function test_postgres_only_operators_are_not_advertised(): void
+    {
+        $operators = $this->connection()->getQueryGrammar()->getOperators();
+
+        self::assertContains('ilike', $operators);
+        self::assertNotContains('@>', $operators);
+        self::assertNotContains('?', $operators);
+        self::assertNotContains('is distinct from', $operators);
+    }
+
     public function test_parameter_compiles_lists_to_array_literals(): void
     {
         $grammar = $this->connection()->getQueryGrammar();
