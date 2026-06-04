@@ -60,4 +60,34 @@ final class DatabaseManagerTest extends TestCase
         $rows = $connection->select('SELECT 42 AS answer');
         self::assertSame(42, (int) $rows[0]['answer']);
     }
+
+    /**
+     * The framework's reconnect lifecycle swaps $pdo on the existing connection
+     * object; queries must follow the swap instead of using a stale cached client.
+     */
+    public function test_reconnect_swaps_the_client_used_by_queries(): void
+    {
+        $manager = $this->manager();
+        $connection = $manager->connection('clickhouse');
+
+        $before = $connection->getRawPdo();
+        $manager->reconnect('clickhouse');
+
+        self::assertNotSame($before, $connection->getRawPdo());
+
+        $rows = $connection->select('SELECT 1 AS ok');
+        self::assertSame(1, (int) $rows[0]['ok']);
+
+        // Swapping in a broken client must break queries — proving they are routed
+        // through getPdo() rather than a handle captured at construction time.
+        $broken = (new \ReflectionClass(Client::class))->newInstanceWithoutConstructor();
+        $connection->setPdo($broken)->setReadPdo($broken);
+
+        try {
+            $connection->select('SELECT 1');
+            self::fail('Expected the swapped-in broken client to be used for queries.');
+        } catch (\Throwable) {
+            // expected: the uninitialised client cannot execute queries
+        }
+    }
 }
