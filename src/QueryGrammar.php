@@ -59,6 +59,10 @@ class QueryGrammar extends PostgresGrammar
             return $this->escapeClickHouseString($value->format($this->getDateFormat()));
         }
 
+        if (is_array($value)) {
+            return $this->compileArrayValue($value);
+        }
+
         if (is_string($value)) {
             return $this->escapeClickHouseString($value);
         }
@@ -68,6 +72,30 @@ class QueryGrammar extends PostgresGrammar
         }
 
         return $this->escapeClickHouseString((string) $value);
+    }
+
+    /**
+     * Compile a PHP array into a ClickHouse literal: lists become Array literals
+     * ("['a', 'b']"), associative arrays become Map construction calls
+     * ("map('k', 'v', ...)"). Elements recurse through parameter(), so nesting and
+     * escaping behave exactly like scalar values.
+     */
+    private function compileArrayValue(array $value): string
+    {
+        if (array_is_list($value)) {
+            $items = array_map(fn ($item): string => (string) $this->parameter($item), $value);
+
+            return '['.implode(', ', $items).']';
+        }
+
+        $pairs = [];
+
+        foreach ($value as $key => $item) {
+            $pairs[] = (string) $this->parameter(is_int($key) ? $key : (string) $key);
+            $pairs[] = (string) $this->parameter($item);
+        }
+
+        return 'map('.implode(', ', $pairs).')';
     }
 
     /**

@@ -109,6 +109,59 @@ final class QueryGrammarTest extends TestCase
         self::assertSame("select 'O''Brien'", $grammar->substituteBindingsIntoRawSql('select ?', ["O'Brien"]));
     }
 
+    public function test_parameter_compiles_lists_to_array_literals(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        self::assertSame("['a', 'o''k', 1]", $grammar->parameter(['a', "o'k", 1]));
+        self::assertSame('[]', $grammar->parameter([]));
+        self::assertSame('[[1, 2], [3]]', $grammar->parameter([[1, 2], [3]]));
+        self::assertSame("[NULL, 'x']", $grammar->parameter([null, 'x']));
+    }
+
+    public function test_parameter_compiles_associative_arrays_to_maps(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        self::assertSame(
+            "map('region', 'eu', 'tier', 2)",
+            $grammar->parameter(['region' => 'eu', 'tier' => 2]),
+        );
+
+        // Keys are escaped like any other value.
+        self::assertSame(
+            "map('o''k', 'v')",
+            $grammar->parameter(["o'k" => 'v']),
+        );
+    }
+
+    public function test_array_bindings_inline_as_array_literals(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        self::assertSame(
+            "select ['a', 'b']",
+            $grammar->substituteBindingsIntoRawSql('select ?', [['a', 'b']]),
+        );
+    }
+
+    public function test_where_against_an_array_column_compiles_an_array_literal(): void
+    {
+        $sql = $this->connection()->table('events')->where('tags', ['a', 'b'])->toSql();
+
+        self::assertSame('select * from "events" where "tags" = [\'a\', \'b\']', $sql);
+    }
+
+    public function test_update_with_array_value_compiles_an_array_literal(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events')->where('id', 1);
+
+        $sql = $connection->getQueryGrammar()->compileUpdate($query, ['tags' => ['x', 'y']]);
+
+        self::assertSame('alter table "events" update "tags" = [\'x\', \'y\'] where "id" = 1', $sql);
+    }
+
     public function test_update_compiles_to_alter_table_mutation(): void
     {
         $connection = $this->connection();

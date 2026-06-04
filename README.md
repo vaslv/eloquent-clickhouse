@@ -148,6 +148,24 @@ Schema::connection('clickhouse')->create('events', function (Blueprint $table) {
   skipped: auto-increment (`id()`/`increments()`), indexes, unique/foreign keys,
   `time()` columns, nullable columns inside the sorting key.
 
+### Array and Map values
+
+PHP arrays compile to ClickHouse-native literals: lists become `Array` literals,
+associative arrays become `Map` construction calls — in inserts, wheres, updates
+and raw bindings alike:
+
+```php
+DB::connection('clickhouse')->table('events')->insert([
+    'id' => 1,
+    'tags' => ['alpha', 'beta'],          // -> ['alpha', 'beta']
+    'attrs' => ['region' => 'eu'],        // -> map('region', 'eu')
+]);
+
+DB::connection('clickhouse')->table('events')->where('tags', ['alpha', 'beta'])->get();
+
+DB::connection('clickhouse')->select('SELECT arrayConcat(?, ?) AS merged', [['a'], ['b']]);
+```
+
 ### Raw statements
 
 ```php
