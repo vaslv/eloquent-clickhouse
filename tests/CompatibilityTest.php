@@ -105,6 +105,18 @@ final class CompatibilityTest extends TestCase
         self::assertInstanceOf(SchemaGrammar::class, $connection->getSchemaGrammar());
     }
 
+    public function test_mutation_grammar_overrides_match_parent_signatures(): void
+    {
+        foreach (['compileUpdate', 'compileDelete', 'compileTruncate'] as $method) {
+            $this->assertMethodSignatureIsCompatible(
+                PostgresGrammar::class,
+                $method,
+                QueryGrammar::class,
+                $method,
+            );
+        }
+    }
+
     private function assertMethodSignatureIsCompatible(
         string $parentClass,
         string $parentMethod,

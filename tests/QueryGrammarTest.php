@@ -87,4 +87,155 @@ final class QueryGrammarTest extends TestCase
         self::assertSame('select 5', $grammar->substituteBindingsIntoRawSql('select ?', [5]));
         self::assertSame("select 'O''Brien'", $grammar->substituteBindingsIntoRawSql('select ?', ["O'Brien"]));
     }
+
+    public function test_update_compiles_to_alter_table_mutation(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events')->where('id', 1);
+
+        $sql = $connection->getQueryGrammar()->compileUpdate($query, ['name' => "O'Brien"]);
+
+        self::assertSame('alter table "events" update "name" = \'O\'\'Brien\' where "id" = 1', $sql);
+    }
+
+    public function test_update_without_where_targets_all_rows(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events');
+
+        $sql = $connection->getQueryGrammar()->compileUpdate($query, ['name' => 'x']);
+
+        self::assertSame('alter table "events" update "name" = \'x\' where 1', $sql);
+    }
+
+    public function test_update_ignores_the_defensive_update_or_insert_limit(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events')->where('id', 1)->limit(1);
+
+        $sql = $connection->getQueryGrammar()->compileUpdate($query, ['name' => 'x']);
+
+        self::assertStringNotContainsString('limit', $sql);
+        self::assertStringNotContainsString('ctid', $sql);
+    }
+
+    public function test_update_with_join_throws(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events')->join('users', 'users.id', '=', 'events.user_id');
+
+        $this->expectException(\RuntimeException::class);
+
+        $connection->getQueryGrammar()->compileUpdate($query, ['name' => 'x']);
+    }
+
+    public function test_delete_compiles_to_alter_table_mutation(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events')->where('id', 1);
+
+        $sql = $connection->getQueryGrammar()->compileDelete($query);
+
+        self::assertSame('alter table "events" delete where "id" = 1', $sql);
+    }
+
+    public function test_delete_without_where_compiles_to_truncate(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events');
+
+        self::assertSame('truncate table "events"', $connection->getQueryGrammar()->compileDelete($query));
+    }
+
+    public function test_delete_with_limit_throws(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events')->where('id', 1)->limit(5);
+
+        $this->expectException(\RuntimeException::class);
+
+        $connection->getQueryGrammar()->compileDelete($query);
+    }
+
+    public function test_truncate_is_not_the_postgres_form(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events');
+
+        $statements = $connection->getQueryGrammar()->compileTruncate($query);
+
+        self::assertSame(['truncate table "events"' => []], $statements);
+    }
+
+    /**
+     * Builder::delete($id) qualifies the key as "table.id", but ClickHouse mutation
+     * predicates only accept bare column names.
+     */
+    public function test_mutations_strip_table_qualified_where_columns(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events')->where('events.id', 9);
+
+        self::assertSame(
+            'alter table "events" delete where "id" = 9',
+            $connection->getQueryGrammar()->compileDelete($query),
+        );
+    }
+
+    public function test_mutations_strip_qualification_inside_nested_wheres(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events')->where(function ($q): void {
+            $q->where('events.a', 1)->orWhere('events.b', 2);
+        });
+
+        $sql = $connection->getQueryGrammar()->compileUpdate($query, ['name' => 'x']);
+
+        self::assertStringContainsString('where ("a" = 1 or "b" = 2)', $sql);
+        self::assertStringNotContainsString('"events"."a"', $sql);
+    }
+
+    public function test_mutations_keep_subquery_columns_qualified(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events')->whereIn('id', function ($q): void {
+            $q->from('other')->select('id')->where('other.kind', 'x');
+        });
+
+        $sql = $connection->getQueryGrammar()->compileDelete($query);
+
+        self::assertStringContainsString('"other"."kind"', $sql);
+    }
+
+    public function test_unqualifying_does_not_mutate_the_callers_builder(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events')->where('events.id', 9);
+
+        $connection->getQueryGrammar()->compileDelete($query);
+
+        self::assertSame('events.id', $query->wheres[0]['column']);
+    }
+
+    public function test_insert_get_id_throws_instead_of_emitting_returning(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('auto-increment');
+
+        $connection->getQueryGrammar()->compileInsertGetId($query, ['name' => 'x'], 'id');
+    }
+
+    public function test_upsert_throws_instead_of_emitting_on_conflict(): void
+    {
+        $connection = $this->connection();
+        $query = $connection->table('events');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('upsert');
+
+        $connection->getQueryGrammar()->compileUpsert($query, [['id' => 1]], ['id'], ['name']);
+    }
 }

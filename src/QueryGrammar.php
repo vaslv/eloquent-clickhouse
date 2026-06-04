@@ -5,9 +5,13 @@ namespace Timeleads\EloquentClickHouse;
 use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
+use RuntimeException;
+use Timeleads\EloquentClickHouse\Concerns\EscapesClickHouseStrings;
 
 class QueryGrammar extends PostgresGrammar
 {
+    use EscapesClickHouseStrings;
+
     protected function whereDate(Builder $query, $where): string
     {
         return $this->dateBasedWhere('toDate', $query, $where);
@@ -54,14 +58,131 @@ class QueryGrammar extends PostgresGrammar
         }
 
         if (is_string($value)) {
-            return $this->escapeStringLiteral($value);
+            return $this->escapeClickHouseString($value);
         }
 
         if (is_int($value) || is_float($value)) {
             return $value;
         }
 
-        return $this->escapeStringLiteral((string) $value);
+        return $this->escapeClickHouseString((string) $value);
+    }
+
+    /**
+     * ClickHouse has no standard UPDATE; compile to an ALTER TABLE mutation. Overridden
+     * at this level (not compileUpdateWithoutJoins) because PostgresGrammar diverts
+     * queries with a limit into a ctid-subquery form that ClickHouse cannot run. A
+     * "limit" has no mutation equivalent and is ignored — Laravel's updateOrInsert()
+     * adds a defensive limit(1) to updates targeting a unique row.
+     */
+    public function compileUpdate(Builder $query, array $values): string
+    {
+        if (isset($query->joins)) {
+            throw new RuntimeException('ClickHouse does not support update statements with joins.');
+        }
+
+        $query = $this->unqualifyMutationWheres($query);
+
+        $table = $this->wrapTable($query->from);
+        $columns = $this->compileUpdateColumns($query, $values);
+        $where = $this->compileWheres($query);
+
+        // ALTER TABLE ... UPDATE requires a WHERE clause.
+        return trim("alter table {$table} update {$columns} ".($where !== '' ? $where : 'where 1'));
+    }
+
+    /**
+     * Compile delete to an ALTER TABLE mutation. An unconditional delete maps to
+     * TRUNCATE, which is synchronous and far cheaper than a full-table mutation.
+     */
+    public function compileDelete(Builder $query): string
+    {
+        if (isset($query->joins)) {
+            throw new RuntimeException('ClickHouse does not support delete statements with joins.');
+        }
+
+        if (isset($query->limit)) {
+            throw new RuntimeException('ClickHouse mutations do not support delete with a limit.');
+        }
+
+        $query = $this->unqualifyMutationWheres($query);
+
+        $table = $this->wrapTable($query->from);
+        $where = $this->compileWheres($query);
+
+        if ($where === '') {
+            return "truncate table {$table}";
+        }
+
+        return trim("alter table {$table} delete {$where}");
+    }
+
+    /**
+     * ClickHouse mutation predicates only accept bare column names of the target table,
+     * but Laravel qualifies some of them (Builder::delete($id) injects "table.id").
+     * Mutations never join, so any qualifier can only refer to the target table itself
+     * and is safe to strip. Operates on clones; the caller's builder stays untouched.
+     */
+    private function unqualifyMutationWheres(Builder $query): Builder
+    {
+        $query = clone $query;
+        $query->wheres = $this->unqualifyWheres($query->wheres);
+
+        return $query;
+    }
+
+    private function unqualifyWheres(array $wheres): array
+    {
+        return array_map(function (array $where) {
+            foreach (['column', 'first', 'second'] as $key) {
+                if (isset($where[$key]) && is_string($where[$key]) && str_contains($where[$key], '.')) {
+                    $where[$key] = substr($where[$key], strrpos($where[$key], '.') + 1);
+                }
+            }
+
+            // Recurse into grouped wheres only; sub-select queries (InSub, Exists, ...)
+            // reference other tables and must keep their qualification.
+            if (($where['type'] ?? null) === 'Nested' && isset($where['query'])) {
+                $where['query'] = clone $where['query'];
+                $where['query']->wheres = $this->unqualifyWheres($where['query']->wheres);
+            }
+
+            return $where;
+        }, $wheres);
+    }
+
+    /**
+     * Inherited from PostgresGrammar this would emit "insert ... returning id", which
+     * ClickHouse rejects — reachable from any Eloquent model that keeps the default
+     * $incrementing = true.
+     */
+    public function compileInsertGetId(Builder $query, $values, $sequence): string
+    {
+        throw new RuntimeException(
+            'ClickHouse has no auto-increment or RETURNING clause; set public $incrementing = false '
+            .'on the model and provide the key explicitly (e.g. a UUID), or use insert().',
+        );
+    }
+
+    /**
+     * Inherited from PostgresGrammar this would emit "insert ... on conflict do update",
+     * which ClickHouse rejects.
+     */
+    public function compileUpsert(Builder $query, array $values, array $uniqueBy, array $update): string
+    {
+        throw new RuntimeException(
+            'ClickHouse does not support upsert (ON CONFLICT); use insert() and deduplicate '
+            .'with a ReplacingMergeTree engine, or run an explicit ALTER TABLE ... UPDATE mutation.',
+        );
+    }
+
+    /**
+     * The inherited Postgres form ("truncate ... restart identity cascade") is invalid
+     * in ClickHouse.
+     */
+    public function compileTruncate(Builder $query): array
+    {
+        return ['truncate table '.$this->wrapTable($query->from) => []];
     }
 
     /**
@@ -94,16 +215,5 @@ class QueryGrammar extends PostgresGrammar
         }
 
         return $query;
-    }
-
-    private function escapeStringLiteral(string $value): string
-    {
-        // ClickHouse processes backslash escapes inside string literals, so backslashes must be
-        // escaped before quotes; otherwise a value such as \' could break out of the literal.
-        return "'".str_replace(
-            ['\\', "'", "\0", "\r", "\n", "\t"],
-            ['\\\\', "''", '\\0', '\\r', '\\n', '\\t'],
-            $value,
-        )."'";
     }
 }
