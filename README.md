@@ -1,5 +1,7 @@
 # Eloquent ClickHouse
 
+**English** | [Русский](README.ru.md)
+
 ![Laravel](https://img.shields.io/badge/Laravel-12%20%7C%2013-FF2D20)
 ![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4)
 ![CI](https://img.shields.io/badge/CI-compatibility%20checks-2EA44F)
@@ -138,8 +140,9 @@ Schema::connection('clickhouse')->create('events', function (Blueprint $table) {
 - The blueprint's `primary()` becomes the MergeTree `ORDER BY` sorting key; without one
   the table is created with `ORDER BY tuple()`. An engine string may carry its own
   clause: `$table->engine('MergeTree ORDER BY (id)')`.
-- `hasTable()`, `hasColumn()`, `getTables()`, `getColumns()`, `dropAllTables()`
-  (and therefore `migrate:fresh`) work against `system.tables` / `system.columns`.
+- `hasTable()`, `hasColumn()`, `getTables()`, `getColumns()`, `getViews()`,
+  `dropAllTables()` (and therefore `migrate:fresh`) work against
+  `system.tables` / `system.columns`.
 - Column types map to ClickHouse-native ones (`string` → `String`,
   `unsignedBigInteger` → `UInt64`, `dateTime($p)` → `DateTime64($p)`, `boolean` →
   `Bool`, `uuid` → `UUID`, `enum` → `Enum8`, ...). `nullable()` wraps the type in
