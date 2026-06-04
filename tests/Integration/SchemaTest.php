@@ -36,16 +36,24 @@ final class SchemaTest extends TestCase
         $client = (new ClickHouseConnector)->connect($config);
         $this->connection = new ClickHouseConnection($client, $config['database'], '', $config);
 
-        $this->connection->getSchemaBuilder()->dropIfExists(self::TABLE);
-        $this->connection->getSchemaBuilder()->dropIfExists(self::TABLE.'_renamed');
+        $this->dropArtifacts();
     }
 
     protected function tearDown(): void
     {
         if (isset($this->connection)) {
-            $this->connection->getSchemaBuilder()->dropIfExists(self::TABLE);
-            $this->connection->getSchemaBuilder()->dropIfExists(self::TABLE.'_renamed');
+            $this->dropArtifacts();
         }
+    }
+
+    private function dropArtifacts(): void
+    {
+        $schema = $this->connection->getSchemaBuilder();
+
+        $schema->dropIfExists(self::TABLE);
+        $schema->dropIfExists(self::TABLE.'_renamed');
+        $this->connection->statement('DROP TABLE IF EXISTS p_'.self::TABLE);
+        $this->connection->statement('DROP TABLE IF EXISTS '.self::TABLE.'_view');
     }
 
     public function test_create_has_table_columns_and_drop_round_trip(): void
@@ -141,5 +149,76 @@ final class SchemaTest extends TestCase
 
         self::assertFalse($schema->hasTable(self::TABLE));
         self::assertSame([], $schema->getTables());
+    }
+
+    /**
+     * system.tables reports physical names; dropAllTables must not re-apply the
+     * connection prefix on top of them (it used to emit "p_p_evt" and skip everything).
+     */
+    public function test_drop_all_tables_honours_the_table_prefix(): void
+    {
+        $config = $this->connection->getConfig();
+        $client = (new ClickHouseConnector)->connect($config);
+        $prefixed = new ClickHouseConnection($client, $config['database'], 'p_', $config);
+
+        $schema = $prefixed->getSchemaBuilder();
+        $schema->create(self::TABLE, function (Blueprint $table): void {
+            $table->string('name');
+        });
+
+        // Physical name carries the prefix.
+        self::assertContains('p_'.self::TABLE, array_column($schema->getTables(), 'name'));
+
+        $schema->dropAllTables();
+
+        self::assertFalse($schema->hasTable(self::TABLE));
+        self::assertNotContains('p_'.self::TABLE, array_column($schema->getTables(), 'name'));
+    }
+
+    public function test_enum_column_round_trips(): void
+    {
+        $schema = $this->connection->getSchemaBuilder();
+
+        $schema->create(self::TABLE, function (Blueprint $table): void {
+            $table->enum('status', ['new', 'done']);
+        });
+
+        $this->connection->table(self::TABLE)->insert(['status' => 'done']);
+
+        self::assertSame('done', $this->connection->table(self::TABLE)->value('status'));
+
+        $columns = collect($schema->getColumns(self::TABLE))->keyBy('name');
+        self::assertSame("Enum8('new' = 1, 'done' = 2)", $columns['status']['type']);
+    }
+
+    public function test_get_views_and_drop_all_views(): void
+    {
+        $schema = $this->connection->getSchemaBuilder();
+
+        $schema->create(self::TABLE, function (Blueprint $table): void {
+            $table->string('name');
+        });
+
+        $this->connection->statement(
+            'CREATE VIEW '.self::TABLE.'_view AS SELECT name FROM '.self::TABLE,
+        );
+
+        try {
+            $views = $schema->getViews();
+
+            self::assertContains(self::TABLE.'_view', array_column($views, 'name'));
+            $view = collect($views)->firstWhere('name', self::TABLE.'_view');
+            self::assertStringContainsString('SELECT', (string) $view['definition']);
+
+            // dropAllTables must leave views alone...
+            $schema->dropAllTables();
+            self::assertContains(self::TABLE.'_view', array_column($schema->getViews(), 'name'));
+
+            // ...and dropAllViews must remove them.
+            $schema->dropAllViews();
+            self::assertSame([], $schema->getViews());
+        } finally {
+            $this->connection->statement('DROP TABLE IF EXISTS '.self::TABLE.'_view');
+        }
     }
 }

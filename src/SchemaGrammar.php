@@ -10,6 +10,8 @@ use RuntimeException;
 use Timeleads\EloquentClickHouse\Concerns\EscapesClickHouseStrings;
 use UnitEnum;
 
+use function Illuminate\Support\enum_value;
+
 class SchemaGrammar extends Grammar
 {
     use EscapesClickHouseStrings;
@@ -46,6 +48,16 @@ class SchemaGrammar extends Grammar
                 .'from system.columns where database %s and table = %s order by position',
             $this->compileSchemaPredicate($schema),
             $this->escapeClickHouseString($table),
+        );
+    }
+
+    public function compileViews($schema): string
+    {
+        // Matches every view flavour: View, MaterializedView, LiveView, WindowView.
+        return sprintf(
+            'select name, database as schema, create_table_query as definition '
+                ."from system.tables where engine like '%%View' and database %s order by name",
+            $this->compileSchemaPredicate($schema),
         );
     }
 
@@ -307,9 +319,19 @@ class SchemaGrammar extends Grammar
 
     protected function typeEnum(Fluent $column): string
     {
+        // Number the values explicitly: deterministic across ClickHouse versions and
+        // makes the position->value mapping visible in the DDL. Enum8 holds Int8, so
+        // 1-based numbering caps it at 127 values; fall back to Enum16 beyond that.
+        $values = [];
+
+        foreach (array_values($column->allowed) as $index => $value) {
+            $values[] = $this->escapeClickHouseString((string) $value).' = '.($index + 1);
+        }
+
         return sprintf(
-            'Enum8(%s)',
-            implode(', ', array_map($this->escapeClickHouseString(...), $column->allowed)),
+            '%s(%s)',
+            count($values) > 127 ? 'Enum16' : 'Enum8',
+            implode(', ', $values),
         );
     }
 

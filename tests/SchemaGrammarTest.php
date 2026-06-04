@@ -218,7 +218,7 @@ final class SchemaGrammarTest extends TestCase
 
         $sql = $blueprint->toSql()[0];
 
-        self::assertStringContainsString("Enum8('new', 'o''k')", $sql);
+        self::assertStringContainsString("Enum8('new' = 1, 'o''k' = 2)", $sql);
     }
 
     public function test_use_current_compiles_to_now(): void
@@ -254,4 +254,55 @@ final class SchemaGrammarTest extends TestCase
         self::assertStringContainsString("database = 'analytics'", $columns);
         self::assertStringContainsString("table = 'events'", $columns);
     }
+
+    public function test_views_query_targets_view_engines(): void
+    {
+        $views = $this->grammar()->compileViews(null);
+
+        self::assertStringContainsString('from system.tables', $views);
+        self::assertStringContainsString("engine like '%View'", $views);
+        self::assertStringContainsString('create_table_query as definition', $views);
+    }
+
+    public function test_enum_values_are_numbered_explicitly(): void
+    {
+        $blueprint = new Blueprint($this->connection(), 'events');
+        $blueprint->enum('status', ['new', 'done']);
+
+        self::assertStringContainsString(
+            "Enum8('new' = 1, 'done' = 2)",
+            $blueprint->toSql()[0],
+        );
+    }
+
+    public function test_enum_overflows_into_enum16(): void
+    {
+        $blueprint = new Blueprint($this->connection(), 'events');
+        $blueprint->enum('code', array_map(strval(...), range(1, 128)));
+
+        $sql = $blueprint->toSql()[0];
+
+        self::assertStringContainsString('Enum16(', $sql);
+        self::assertStringContainsString("'128' = 128", $sql);
+    }
+
+    /**
+     * enum_value() lives in the Illuminate\Support namespace; without the function
+     * import getDefaultValue() fataled on any enum default.
+     */
+    public function test_enum_default_value_compiles(): void
+    {
+        $blueprint = new Blueprint($this->connection(), 'events');
+        $blueprint->string('status')->default(SchemaGrammarTestStatus::Active);
+
+        self::assertStringContainsString(
+            '"status" String default \'active\'',
+            $blueprint->toSql()[0],
+        );
+    }
+}
+
+enum SchemaGrammarTestStatus: string
+{
+    case Active = 'active';
 }
