@@ -80,6 +80,27 @@ final class QueryGrammarTest extends TestCase
         self::assertSame("'O''Brien'", $grammar->parameter("O'Brien"));
     }
 
+    public function test_parameter_escapes_date_time_format_output(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        self::assertSame(
+            "'2026-06-04 12:00:00'",
+            $grammar->parameter(new \DateTimeImmutable('2026-06-04 12:00:00')),
+        );
+
+        // A DateTime subclass may override format(); its output must not break the literal.
+        $evil = new class('now') extends \DateTime
+        {
+            public function format(string $format): string
+            {
+                return "2020-01-01' OR 1=1 -- ";
+            }
+        };
+
+        self::assertSame("'2020-01-01'' OR 1=1 -- '", $grammar->parameter($evil));
+    }
+
     public function test_substitute_bindings_inlines_and_escapes(): void
     {
         $grammar = $this->connection()->getQueryGrammar();

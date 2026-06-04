@@ -54,7 +54,9 @@ class QueryGrammar extends PostgresGrammar
         }
 
         if ($value instanceof \DateTimeInterface) {
-            return "'".$value->format($this->getDateFormat())."'";
+            // Escape the formatted output too: a DateTime subclass can override
+            // format() and return literal-breaking text. Idempotent for real dates.
+            return $this->escapeClickHouseString($value->format($this->getDateFormat()));
         }
 
         if (is_string($value)) {
