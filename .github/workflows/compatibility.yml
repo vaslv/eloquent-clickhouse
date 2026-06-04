@@ -70,8 +70,10 @@ jobs:
         run: composer update --no-interaction --prefer-dist ${{ matrix.composer_flags }}
 
       - name: Verify Illuminate major version
+        # Single shell quotes: with double quotes the shell expands $version to an
+        # empty string before PHP ever sees the code, producing a parse error.
         run: |
-          php -r "require 'vendor/autoload.php'; $version = \Composer\InstalledVersions::getPrettyVersion('illuminate/database'); if (!preg_match('/^v?${{ matrix.laravel }}\\./', $version)) { fwrite(STDERR, 'Unexpected illuminate/database version: '.$version.PHP_EOL); exit(1);} echo $version.PHP_EOL;"
+          php -r 'require "vendor/autoload.php"; $version = \Composer\InstalledVersions::getPrettyVersion("illuminate/database"); if (!preg_match("/^v?${{ matrix.laravel }}\./", $version)) { fwrite(STDERR, "Unexpected illuminate/database version: $version".PHP_EOL); exit(1); } echo $version, PHP_EOL;'
 
       - name: Run unit and integration tests
         run: composer test:all
