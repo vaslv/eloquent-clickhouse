@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Timeleads\EloquentClickHouse\Tests\Integration;
 
+use ClickHouseDB\Client;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\DatabaseManager;
 use PHPUnit\Framework\TestCase;
 use Timeleads\EloquentClickHouse\ClickHouseConnection;
 use Timeleads\EloquentClickHouse\ServiceProvider;
@@ -24,7 +26,7 @@ final class DatabaseManagerTest extends TestCase
         }
     }
 
-    public function test_connection_resolves_through_manager_and_queries(): void
+    private function manager(): DatabaseManager
     {
         $capsule = new Capsule;
         $capsule->addConnection([
@@ -45,12 +47,15 @@ final class DatabaseManagerTest extends TestCase
         $provider->register();
         $provider->boot();
 
-        // Resolving 'db' triggers the boot() extend() wrapper that registers the driver.
-        $container->make('db');
+        return $manager;
+    }
 
-        $connection = $manager->connection('clickhouse');
+    public function test_connection_resolves_through_manager_and_queries(): void
+    {
+        $connection = $this->manager()->connection('clickhouse');
 
         self::assertInstanceOf(ClickHouseConnection::class, $connection);
+        self::assertSame('clickhouse', $connection->getName());
 
         $rows = $connection->select('SELECT 42 AS answer');
         self::assertSame(42, (int) $rows[0]['answer']);

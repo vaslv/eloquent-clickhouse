@@ -2,32 +2,28 @@
 
 namespace Timeleads\EloquentClickHouse;
 
-use Illuminate\Database\Connection;
-
 class ServiceProvider extends \Illuminate\Support\ServiceProvider
 {
     public function register(): void
     {
-        $this->app->bind('db.connector.clickhouse', function ($app) {
+        $this->app->bind('db.connector.clickhouse', function () {
             return new ClickHouseConnector;
-        });
-
-        Connection::resolverFor('clickhouse', function ($connection, $database, $prefix, $config) {
-            return new ClickHouseConnection($connection, $database, $prefix, $config);
         });
     }
 
     public function boot(): void
     {
-        $this->app->extend('db', function ($factory, $app) {
-            $factory->extend('clickhouse', function ($config) use ($app) {
-                $connector = $app->make('db.connector.clickhouse');
-                $connection = $connector->connect($config);
+        // Single registration path: the DatabaseManager extension. A
+        // Connection::resolverFor() hook would never win over it (the manager
+        // checks extensions first) and would receive a PDO/closure instead of
+        // the smi2 Client, so it is intentionally not registered.
+        $this->app['db']->extend('clickhouse', function (array $config, string $name) {
+            // Mirror ConnectionFactory::parseConfig() so Connection::getName() works.
+            $config['name'] = $name;
 
-                return new ClickHouseConnection($connection, $config['database'], $config['prefix'] ?? '', $config);
-            });
+            $connection = $this->app->make('db.connector.clickhouse')->connect($config);
 
-            return $factory;
+            return new ClickHouseConnection($connection, $config['database'], $config['prefix'] ?? '', $config);
         });
     }
 }
