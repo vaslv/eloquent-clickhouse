@@ -123,11 +123,19 @@ class ClickHouseConnection extends Connection
 
     public function cursor($query, $bindings = [], $useReadPdo = true, array $fetchUsing = []): Generator
     {
-        if ($this->pretending()) {
-            return;
-        }
+        // Goes through run() like every other query method, so cursor queries are
+        // logged, fire QueryExecuted, wrap failures in QueryException and get the
+        // lost-connection retry. Nothing is lost by fetching eagerly: the smi2 HTTP
+        // client buffers the whole result anyway.
+        $rows = $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
+            if ($this->pretending()) {
+                return [];
+            }
 
-        foreach ($this->client($useReadPdo)->select($this->inlineBindings($query, $bindings))->rows() as $row) {
+            return $this->client($useReadPdo)->select($this->inlineBindings($query, $bindings))->rows();
+        });
+
+        foreach ($rows as $row) {
             yield $row;
         }
     }

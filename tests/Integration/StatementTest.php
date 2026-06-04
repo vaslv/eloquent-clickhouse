@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Timeleads\EloquentClickHouse\Tests\Integration;
 
+use Illuminate\Database\QueryException;
 use PHPUnit\Framework\TestCase;
 use Timeleads\EloquentClickHouse\ClickHouseConnection;
 use Timeleads\EloquentClickHouse\ClickHouseConnector;
@@ -82,5 +83,23 @@ final class StatementTest extends TestCase
         }
 
         self::assertSame([0, 1, 2], $values);
+    }
+
+    public function test_cursor_wraps_failures_in_query_exception(): void
+    {
+        $this->expectException(QueryException::class);
+
+        iterator_to_array($this->connection()->cursor('SELECT broken syntax ('));
+    }
+
+    public function test_cursor_queries_are_logged(): void
+    {
+        $connection = $this->connection();
+        $connection->enableQueryLog();
+
+        iterator_to_array($connection->cursor('SELECT 1 AS n'));
+
+        self::assertCount(1, $connection->getQueryLog());
+        self::assertSame('SELECT 1 AS n', $connection->getQueryLog()[0]['query']);
     }
 }

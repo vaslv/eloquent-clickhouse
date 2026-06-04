@@ -31,4 +31,18 @@ final class ConnectionTest extends TestCase
         self::assertCount(1, $queries);
         self::assertSame('INSERT INTO events (id) VALUES (1)', $queries[0]['query']);
     }
+
+    /**
+     * cursor() must run through run() like every other query method, so its queries
+     * are logged (and wrapped in QueryException / retried on lost connections).
+     */
+    public function test_cursor_runs_through_run_and_is_logged(): void
+    {
+        $queries = $this->connection()->pretend(function (ClickHouseConnection $conn): void {
+            iterator_to_array($conn->cursor('SELECT 1 AS n'));
+        });
+
+        self::assertCount(1, $queries);
+        self::assertSame('SELECT 1 AS n', $queries[0]['query']);
+    }
 }
