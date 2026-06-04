@@ -3,7 +3,6 @@
     "description": "Laravel Eloquent driver for ClickHouse",
     "type": "library",
     "license": "MIT",
-    "version": "1.1.2",
     "authors": [
         {
             "name": "Andrei Vasilev",
@@ -31,7 +30,9 @@
     },
     "scripts": {
         "format": "pint",
-        "test": "phpunit"
+        "test": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration",
+        "test:all": "phpunit"
     },
     "extra": {
         "laravel": {

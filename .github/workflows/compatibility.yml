@@ -11,13 +11,45 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Laravel 12 supports PHP >= 8.2, Laravel 13 requires PHP >= 8.3.
         include:
           - laravel: "12"
-            php: "8.4"
+            php: "8.2"
             composer_flags: "--prefer-lowest"
+          - laravel: "12"
+            php: "8.3"
+            composer_flags: ""
+          - laravel: "12"
+            php: "8.4"
+            composer_flags: ""
+          - laravel: "13"
+            php: "8.3"
+            composer_flags: ""
           - laravel: "13"
             php: "8.4"
             composer_flags: ""
+
+    services:
+      clickhouse:
+        image: clickhouse/clickhouse-server:25.3
+        env:
+          CLICKHOUSE_DB: eloquent_test
+          CLICKHOUSE_USER: eloquent
+          CLICKHOUSE_PASSWORD: secret
+        ports:
+          - 8123:8123
+        options: >-
+          --health-cmd "wget -qO- http://127.0.0.1:8123/ping || exit 1"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 30
+
+    env:
+      CLICKHOUSE_HOST: 127.0.0.1
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_DATABASE: eloquent_test
+      CLICKHOUSE_USERNAME: eloquent
+      CLICKHOUSE_PASSWORD: secret
 
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +63,9 @@ jobs:
       - name: Validate composer.json
         run: composer validate --strict
 
+      - name: Pin Illuminate major version
+        run: composer require "illuminate/database:^${{ matrix.laravel }}.0" --no-interaction --no-update
+
       - name: Install dependencies
         run: composer update --no-interaction --prefer-dist ${{ matrix.composer_flags }}
 
@@ -38,5 +73,5 @@ jobs:
         run: |
           php -r "require 'vendor/autoload.php'; $version = \Composer\InstalledVersions::getPrettyVersion('illuminate/database'); if (!preg_match('/^v?${{ matrix.laravel }}\\./', $version)) { fwrite(STDERR, 'Unexpected illuminate/database version: '.$version.PHP_EOL); exit(1);} echo $version.PHP_EOL;"
 
-      - name: Run tests
-        run: composer test
+      - name: Run unit and integration tests
+        run: composer test:all

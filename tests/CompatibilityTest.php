@@ -9,6 +9,7 @@ use Illuminate\Container\Container;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Grammar;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
+use Illuminate\Database\Schema\Grammars\Grammar as BaseSchemaGrammar;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
@@ -79,17 +80,53 @@ final class CompatibilityTest extends TestCase
         self::assertTrue($app->bound('db.connector.clickhouse'));
         self::assertArrayHasKey('clickhouse', $factory->extensions);
 
-        $resolver = Connection::getResolver('clickhouse');
-
-        self::assertIsCallable($resolver);
+        // The DatabaseManager extension is the single registration path; the
+        // Connection::resolverFor() hook must stay unregistered (it would lose to the
+        // extension anyway and would receive a PDO instead of the smi2 client).
+        self::assertNull(Connection::getResolver('clickhouse'));
 
         $client = (new ReflectionClass(Client::class))->newInstanceWithoutConstructor();
-        $connection = $resolver($client, 'default', '', []);
+        $app->instance('db.connector.clickhouse', new class($client)
+        {
+            public function __construct(private readonly Client $client) {}
+
+            public function connect(array $config): Client
+            {
+                return $this->client;
+            }
+        });
+
+        $connection = $factory->extensions['clickhouse'](['database' => 'default', 'prefix' => ''], 'clickhouse');
         $connection->useDefaultSchemaGrammar();
 
         self::assertInstanceOf(ClickHouseConnection::class, $connection);
+        self::assertSame('clickhouse', $connection->getName());
         self::assertInstanceOf(QueryGrammar::class, $connection->getQueryGrammar());
         self::assertInstanceOf(SchemaGrammar::class, $connection->getSchemaGrammar());
+    }
+
+    public function test_mutation_grammar_overrides_match_parent_signatures(): void
+    {
+        foreach (['compileUpdate', 'compileDelete', 'compileTruncate'] as $method) {
+            $this->assertMethodSignatureIsCompatible(
+                PostgresGrammar::class,
+                $method,
+                QueryGrammar::class,
+                $method,
+            );
+        }
+    }
+
+    public function test_schema_grammar_overrides_match_parent_signatures(): void
+    {
+        foreach (['compileTableExists', 'compileTables', 'compileColumns', 'compileChange'] as $method) {
+            $this->assertMethodSignatureIsCompatible(
+                BaseSchemaGrammar::class,
+                $method,
+                SchemaGrammar::class,
+                $method,
+            );
+        }
     }
 
     private function assertMethodSignatureIsCompatible(
