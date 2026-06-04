@@ -117,6 +117,18 @@ final class CompatibilityTest extends TestCase
         }
     }
 
+    public function test_schema_grammar_overrides_match_parent_signatures(): void
+    {
+        foreach (['compileTableExists', 'compileTables', 'compileColumns', 'compileChange'] as $method) {
+            $this->assertMethodSignatureIsCompatible(
+                BaseSchemaGrammar::class,
+                $method,
+                SchemaGrammar::class,
+                $method,
+            );
+        }
+    }
+
     private function assertMethodSignatureIsCompatible(
         string $parentClass,
         string $parentMethod,

@@ -5,7 +5,6 @@ namespace Timeleads\EloquentClickHouse;
 use ClickHouseDB\Client;
 use Generator;
 use Illuminate\Database\Connection;
-use Illuminate\Database\Query\Processors\Processor;
 
 class ClickHouseConnection extends Connection
 {
@@ -42,6 +41,15 @@ class ClickHouseConnection extends Connection
     public function getDefaultSchemaGrammar(): SchemaGrammar
     {
         return new SchemaGrammar($this);
+    }
+
+    public function getSchemaBuilder(): SchemaBuilder
+    {
+        if (is_null($this->schemaGrammar)) {
+            $this->useDefaultSchemaGrammar();
+        }
+
+        return new SchemaBuilder($this);
     }
 
     public function select($query, $bindings = [], $useReadPdo = true, array $fetchUsing = []): array
