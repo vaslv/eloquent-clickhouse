@@ -244,6 +244,64 @@ class QueryGrammar extends PostgresGrammar
     }
 
     /**
+     * insertOrIgnore inherits Postgres' "on conflict do nothing", which ClickHouse
+     * rejects. Fail loudly instead of emitting SQL that only breaks against the server.
+     */
+    public function compileInsertOrIgnore(Builder $query, array $values): string
+    {
+        throw new RuntimeException(
+            'ClickHouse does not support insertOrIgnore (ON CONFLICT); use insert() and '
+            .'deduplicate with a ReplacingMergeTree engine.',
+        );
+    }
+
+    public function compileInsertOrIgnoreUsing(Builder $query, array $columns, string $sql): string
+    {
+        throw new RuntimeException(
+            'ClickHouse does not support insertOrIgnore (ON CONFLICT); use insertUsing() and '
+            .'deduplicate with a ReplacingMergeTree engine.',
+        );
+    }
+
+    /**
+     * The JSON where clauses inherit Postgres' jsonb operators (@>, ->, ->>, ?),
+     * which ClickHouse cannot run — in ClickHouse '->' is lambda syntax. Fail loudly;
+     * use a raw where with ClickHouse's JSONExtractString / JSONHas functions instead.
+     */
+    protected function whereJsonContains(Builder $query, $where): string
+    {
+        throw $this->unsupportedJson('whereJsonContains');
+    }
+
+    protected function whereJsonContainsKey(Builder $query, $where): string
+    {
+        throw $this->unsupportedJson('whereJsonContainsKey');
+    }
+
+    protected function whereJsonOverlaps(Builder $query, $where): string
+    {
+        throw $this->unsupportedJson('whereJsonOverlaps');
+    }
+
+    protected function whereJsonLength(Builder $query, $where): string
+    {
+        throw $this->unsupportedJson('whereJsonLength');
+    }
+
+    protected function wrapJsonSelector($value): string
+    {
+        throw $this->unsupportedJson('JSON column access (->)');
+    }
+
+    private function unsupportedJson(string $feature): RuntimeException
+    {
+        return new RuntimeException(
+            "ClickHouse does not support {$feature} (Postgres jsonb syntax). Use a raw "
+            .'where/select with ClickHouse JSON functions (JSONExtractString, JSONHas, ...).',
+        );
+    }
+
+    /**
      * Inline bindings into raw SQL using ClickHouse-safe quoting. Mirrors the framework's
      * literal-aware scanner but escapes through parameter() instead of Connection::escape(),
      * which would call PDO::quote() on the non-PDO smi2 client.

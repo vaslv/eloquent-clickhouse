@@ -380,4 +380,28 @@ final class QueryGrammarTest extends TestCase
 
         $connection->getQueryGrammar()->compileUpsert($query, [['id' => 1]], ['id'], ['name']);
     }
+
+    public function test_insert_or_ignore_throws_instead_of_emitting_on_conflict(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('ON CONFLICT');
+
+        $this->connection()->table('events')->insertOrIgnore(['id' => 1]);
+    }
+
+    public function test_where_json_contains_throws_instead_of_emitting_jsonb(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('jsonb');
+
+        $this->connection()->table('events')->whereJsonContains('payload->tags', 'x')->toSql();
+    }
+
+    public function test_json_arrow_selector_throws_instead_of_emitting_jsonb(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('jsonb');
+
+        $this->connection()->table('events')->where('payload->name', 'x')->toSql();
+    }
 }
