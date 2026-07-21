@@ -126,29 +126,41 @@ class ClickHouseConnection extends Connection
         // Stream rows through smi2's selectGenerator (JSONEachRow over a php://temp
         // stream that spills to disk past 2MB), so a large cursor holds one decoded row
         // in memory instead of the whole result set — which is exactly why callers reach
-        // for cursor(). The generator is primed inside run() so the HTTP request (and any
-        // connection failure) still gets logging, QueryException wrapping and the
-        // lost-connection retry; only per-row iteration happens outside run().
-        $generator = $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
+        // for cursor(). selectGenerator() landed in smi2 1.24.406; on older releases
+        // (the ^1.6 floor) fall back to an eager fetch so cursor() keeps working. The
+        // work happens inside run() so the HTTP request (and any connection failure)
+        // still gets logging, QueryException wrapping and the lost-connection retry.
+        $result = $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
             if ($this->pretending()) {
-                return (function () {
-                    yield from [];
-                })();
+                return [];
             }
 
-            $rows = $this->client($useReadPdo)->selectGenerator($this->inlineBindings($query, $bindings));
+            $client = $this->client($useReadPdo);
+            $sql = $this->inlineBindings($query, $bindings);
+
+            if (! method_exists($client, 'selectGenerator')) {
+                return $client->select($sql)->rows();
+            }
+
+            $rows = $client->selectGenerator($sql);
             $rows->current(); // Force the request now, inside run()'s protection.
 
             return $rows;
         });
 
-        // Drive the primed generator through the Iterator protocol rather than
-        // `yield from`: the latter rewinds, which throws on an already-started (or
-        // exhausted, for an empty result) generator. current()/next() do not.
-        while ($generator->valid()) {
-            yield $generator->key() => $generator->current();
-            $generator->next();
+        if ($result instanceof Generator) {
+            // Drive the primed generator through the Iterator protocol rather than
+            // `yield from`: the latter rewinds, which throws on an already-started (or
+            // exhausted, for an empty result) generator. current()/next() do not.
+            while ($result->valid()) {
+                yield $result->key() => $result->current();
+                $result->next();
+            }
+
+            return;
         }
+
+        yield from $result;
     }
 
     public function beginTransaction() {}
