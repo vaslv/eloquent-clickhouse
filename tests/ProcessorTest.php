@@ -63,4 +63,21 @@ final class ProcessorTest extends TestCase
             $columns[2]['generation'],
         );
     }
+
+    public function test_low_cardinality_nullable_is_unwrapped_correctly(): void
+    {
+        $columns = (new Processor)->processColumns([
+            [
+                'name' => 'tag',
+                'type' => 'LowCardinality(Nullable(String))',
+                'default_kind' => '',
+                'default_expression' => '',
+                'comment' => '',
+            ],
+        ]);
+
+        self::assertTrue($columns[0]['nullable']);
+        self::assertSame('String', $columns[0]['type_name']);
+        self::assertSame('LowCardinality(Nullable(String))', $columns[0]['type']);
+    }
 }

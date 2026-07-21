@@ -17,8 +17,13 @@ class Processor extends BaseProcessor
             $result = (array) $result;
 
             $type = $result['type'];
-            $nullable = str_starts_with($type, 'Nullable(');
-            $bareType = $nullable ? substr($type, 9, -1) : $type;
+
+            // LowCardinality(...) wraps the real type (e.g. LowCardinality(Nullable(String)));
+            // unwrap it before the nullable check so wrapped columns report correctly.
+            $inner = str_starts_with($type, 'LowCardinality(') ? substr($type, 15, -1) : $type;
+
+            $nullable = str_starts_with($inner, 'Nullable(');
+            $bareType = $nullable ? substr($inner, 9, -1) : $inner;
 
             $defaultKind = $result['default_kind'] ?? '';
 
