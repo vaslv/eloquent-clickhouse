@@ -9,6 +9,8 @@ use Illuminate\Database\Connectors\ConnectorInterface;
 class ClickHouseConnector implements ConnectorInterface
 {
     /**
+     * @param  array<string, mixed>  $config
+     *
      * @throws Exception
      */
     public function connect(array $config): Client
@@ -51,6 +53,9 @@ class ClickHouseConnector implements ConnectorInterface
      * even over HTTPS, so 'https' => true verifies the server certificate by default
      * here; opt out with 'verify' => false. A CA bundle can be given as 'sslCA' (the
      * smi2 spelling) or 'ssl_ca', and 'curl_options' wins over the derived defaults.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
      */
     public function clientParams(array $config): array
     {

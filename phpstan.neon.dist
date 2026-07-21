@@ -1,0 +1,42 @@
+parameters:
+    level: 6
+    paths:
+        - src
+    # The framework PHPDoc-types getPdo() as PDO and schemaGrammar as non-null,
+    # but this driver adapts a smi2 Client into that surface and lazily inits the
+    # schema grammar. Don't treat those PHPDoc types as certain for narrowing.
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        # Laravel's schema Blueprint hands column/command definitions as
+        # Illuminate\Support\Fluent / ColumnDefinition, whose attributes are
+        # dynamic (__get). Every schema grammar reads them this way; PHPStan
+        # can't see the magic properties without the full framework + Larastan,
+        # which needs laravel/framework this lean package deliberately omits.
+        # SchemaGrammar's type*/modify*/compile* methods all take Laravel's
+        # Illuminate\Support\Fluent column/command bag. Its generic params are
+        # invariably <string, mixed> (a dynamic attribute bag), so spelling that
+        # out on ~50 one-line methods is pure noise with no added type safety.
+        - identifier: missingType.generics
+          message: '#with generic class Illuminate\\Support\\Fluent but does not specify its types#'
+        - identifier: property.notFound
+          message: '#Access to an undefined property Illuminate\\Support\\Fluent::#'
+        - identifier: property.notFound
+          message: '#Access to an undefined property Illuminate\\Database\\Schema\\ColumnDefinition::#'
+        - identifier: nullCoalesce.property
+          message: '#Property Illuminate\\Database\\Schema\\Blueprint::\$engine#'
+        # The driver intentionally adapts a non-PDO smi2 Client into the
+        # PDO-typed framework connection surface. These signature mismatches are
+        # by design, not defects.
+        - identifier: argument.type
+          path: src/ClickHouseConnection.php
+        # connect() returns a smi2 Client, and cursor() yields associative-array
+        # rows (like select()) rather than the framework's PDO-era stdClass —
+        # both deliberate for a non-PDO HTTP driver.
+        - identifier: method.childReturnType
+          path: src/ClickHouseConnector.php
+        - identifier: method.childReturnType
+          path: src/ClickHouseConnection.php
+        # cursor() feature-detects selectGenerator() for older smi2 releases;
+        # PHPStan only sees the installed (newer) client where it always exists.
+        - identifier: function.alreadyNarrowedType
+          path: src/ClickHouseConnection.php

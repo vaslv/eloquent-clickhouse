@@ -8,6 +8,9 @@ use Illuminate\Database\Connection;
 
 class ClickHouseConnection extends Connection
 {
+    /**
+     * @param  array<string, mixed>  $config
+     */
     public function __construct(Client $client, $database, $tablePrefix = '', array $config = [])
     {
         /** @noinspection PhpParamsInspection */
@@ -52,6 +55,11 @@ class ClickHouseConnection extends Connection
         return new SchemaBuilder($this);
     }
 
+    /**
+     * @param  array<int|string, mixed>  $bindings
+     * @param  array<string, mixed>  $fetchUsing
+     * @return list<array<string, mixed>>
+     */
     public function select($query, $bindings = [], $useReadPdo = true, array $fetchUsing = []): array
     {
         return $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
@@ -63,6 +71,9 @@ class ClickHouseConnection extends Connection
         });
     }
 
+    /**
+     * @param  array<int|string, mixed>  $bindings
+     */
     public function insert($query, $bindings = []): bool
     {
         return $this->run($query, $bindings, function ($query, $bindings) {
@@ -76,11 +87,17 @@ class ClickHouseConnection extends Connection
         });
     }
 
+    /**
+     * @param  array<int|string, mixed>  $bindings
+     */
     protected function inlineBindings(string $query, array $bindings): string
     {
         return $this->getQueryGrammar()->substituteBindingsIntoRawSql($query, $bindings);
     }
 
+    /**
+     * @param  array<int|string, mixed>  $bindings
+     */
     public function statement($query, $bindings = []): bool
     {
         return $this->run($query, $bindings, function ($query, $bindings) {
@@ -94,6 +111,9 @@ class ClickHouseConnection extends Connection
         });
     }
 
+    /**
+     * @param  array<int|string, mixed>  $bindings
+     */
     public function affectingStatement($query, $bindings = []): int
     {
         return $this->run($query, $bindings, function ($query, $bindings) {
@@ -121,6 +141,11 @@ class ClickHouseConnection extends Connection
         });
     }
 
+    /**
+     * @param  array<int|string, mixed>  $bindings
+     * @param  array<string, mixed>  $fetchUsing
+     * @return Generator<int, array<string, mixed>>
+     */
     public function cursor($query, $bindings = [], $useReadPdo = true, array $fetchUsing = []): Generator
     {
         // Stream rows through smi2's selectGenerator (JSONEachRow over a php://temp

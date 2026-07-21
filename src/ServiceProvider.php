@@ -55,6 +55,9 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
      * Resolve a read/write sub-config the way ConnectionFactory does: pick one host
      * group at random when a list is given, merge it over the base config, and drop
      * the read/write keys so the connector sees a flat single-host config.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
      */
     private function mergeReadWriteConfig(array $config, string $type): array
     {

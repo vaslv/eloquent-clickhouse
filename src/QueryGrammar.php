@@ -25,17 +25,26 @@ class QueryGrammar extends PostgresGrammar
         'like', 'not like', 'ilike', 'not ilike',
     ];
 
+    /**
+     * @param  array<string, mixed>  $where
+     */
     protected function whereDate(Builder $query, $where): string
     {
         return $this->dateBasedWhere('toDate', $query, $where);
     }
 
+    /**
+     * @param  array<string, mixed>  $where
+     */
     protected function whereTime(Builder $query, $where): string
     {
         return 'formatDateTime('.$this->wrap($where['column']).", '%H:%M:%S') "
             .$where['operator'].' '.$this->parameter($where['value']);
     }
 
+    /**
+     * @param  array<string, mixed>  $where
+     */
     protected function dateBasedWhere($type, Builder $query, $where): string
     {
         // Map Laravel's date-part keywords to ClickHouse functions. whereDate passes the
@@ -107,6 +116,8 @@ class QueryGrammar extends PostgresGrammar
      * ("['a', 'b']"), associative arrays become Map construction calls
      * ("map('k', 'v', ...)"). Elements recurse through parameter(), so nesting and
      * escaping behave exactly like scalar values.
+     *
+     * @param  array<int|string, mixed>  $value
      */
     private function compileArrayValue(array $value): string
     {
@@ -132,6 +143,8 @@ class QueryGrammar extends PostgresGrammar
      * queries with a limit into a ctid-subquery form that ClickHouse cannot run. A
      * "limit" has no mutation equivalent and is ignored — Laravel's updateOrInsert()
      * adds a defensive limit(1) to updates targeting a unique row.
+     *
+     * @param  array<string, mixed>  $values
      */
     public function compileUpdate(Builder $query, array $values): string
     {
@@ -189,6 +202,10 @@ class QueryGrammar extends PostgresGrammar
         return $query;
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $wheres
+     * @return array<int, array<string, mixed>>
+     */
     private function unqualifyWheres(array $wheres): array
     {
         return array_map(function (array $where) {
@@ -213,6 +230,8 @@ class QueryGrammar extends PostgresGrammar
      * Inherited from PostgresGrammar this would emit "insert ... returning id", which
      * ClickHouse rejects — reachable from any Eloquent model that keeps the default
      * $incrementing = true.
+     *
+     * @param  array<string, mixed>  $values
      */
     public function compileInsertGetId(Builder $query, $values, $sequence): string
     {
@@ -225,6 +244,10 @@ class QueryGrammar extends PostgresGrammar
     /**
      * Inherited from PostgresGrammar this would emit "insert ... on conflict do update",
      * which ClickHouse rejects.
+     *
+     * @param  array<int, array<string, mixed>>  $values
+     * @param  array<int, string>  $uniqueBy
+     * @param  array<int|string, mixed>  $update
      */
     public function compileUpsert(Builder $query, array $values, array $uniqueBy, array $update): string
     {
@@ -237,6 +260,8 @@ class QueryGrammar extends PostgresGrammar
     /**
      * The inherited Postgres form ("truncate ... restart identity cascade") is invalid
      * in ClickHouse.
+     *
+     * @return array<string, list<mixed>>
      */
     public function compileTruncate(Builder $query): array
     {
@@ -246,6 +271,8 @@ class QueryGrammar extends PostgresGrammar
     /**
      * insertOrIgnore inherits Postgres' "on conflict do nothing", which ClickHouse
      * rejects. Fail loudly instead of emitting SQL that only breaks against the server.
+     *
+     * @param  array<string, mixed>  $values
      */
     public function compileInsertOrIgnore(Builder $query, array $values): string
     {
@@ -255,6 +282,9 @@ class QueryGrammar extends PostgresGrammar
         );
     }
 
+    /**
+     * @param  array<int, string>  $columns
+     */
     public function compileInsertOrIgnoreUsing(Builder $query, array $columns, string $sql): string
     {
         throw new RuntimeException(
@@ -267,22 +297,33 @@ class QueryGrammar extends PostgresGrammar
      * The JSON where clauses inherit Postgres' jsonb operators (@>, ->, ->>, ?),
      * which ClickHouse cannot run — in ClickHouse '->' is lambda syntax. Fail loudly;
      * use a raw where with ClickHouse's JSONExtractString / JSONHas functions instead.
+     *
+     * @param  array<string, mixed>  $where
      */
     protected function whereJsonContains(Builder $query, $where): string
     {
         throw $this->unsupportedJson('whereJsonContains');
     }
 
+    /**
+     * @param  array<string, mixed>  $where
+     */
     protected function whereJsonContainsKey(Builder $query, $where): string
     {
         throw $this->unsupportedJson('whereJsonContainsKey');
     }
 
+    /**
+     * @param  array<string, mixed>  $where
+     */
     protected function whereJsonOverlaps(Builder $query, $where): string
     {
         throw $this->unsupportedJson('whereJsonOverlaps');
     }
 
+    /**
+     * @param  array<string, mixed>  $where
+     */
     protected function whereJsonLength(Builder $query, $where): string
     {
         throw $this->unsupportedJson('whereJsonLength');
@@ -305,6 +346,8 @@ class QueryGrammar extends PostgresGrammar
      * Inline bindings into raw SQL using ClickHouse-safe quoting. Mirrors the framework's
      * literal-aware scanner but escapes through parameter() instead of Connection::escape(),
      * which would call PDO::quote() on the non-PDO smi2 client.
+     *
+     * @param  array<int|string, mixed>  $bindings
      */
     public function substituteBindingsIntoRawSql($sql, $bindings): string
     {
