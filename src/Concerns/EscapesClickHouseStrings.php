@@ -1,6 +1,6 @@
 <?php
 
-namespace Timeleads\EloquentClickHouse\Concerns;
+namespace Vaslv\EloquentClickHouse\Concerns;
 
 trait EscapesClickHouseStrings
 {

@@ -1,13 +1,13 @@
 <?php
 
-namespace Timeleads\EloquentClickHouse;
+namespace Vaslv\EloquentClickHouse;
 
 use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Grammars\Grammar;
 use Illuminate\Support\Fluent;
 use RuntimeException;
-use Timeleads\EloquentClickHouse\Concerns\EscapesClickHouseStrings;
+use Vaslv\EloquentClickHouse\Concerns\EscapesClickHouseStrings;
 use UnitEnum;
 
 use function Illuminate\Support\enum_value;

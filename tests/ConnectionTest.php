@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Timeleads\EloquentClickHouse\Tests;
+namespace Vaslv\EloquentClickHouse\Tests;
 
 use ClickHouseDB\Client;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
-use Timeleads\EloquentClickHouse\ClickHouseConnection;
+use Vaslv\EloquentClickHouse\ClickHouseConnection;
 
 final class ConnectionTest extends TestCase
 {

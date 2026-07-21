@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Timeleads\EloquentClickHouse\Tests\Integration;
+namespace Vaslv\EloquentClickHouse\Tests\Integration;
 
 use Illuminate\Database\QueryException;
 use PHPUnit\Framework\TestCase;
-use Timeleads\EloquentClickHouse\ClickHouseConnection;
-use Timeleads\EloquentClickHouse\ClickHouseConnector;
+use Vaslv\EloquentClickHouse\ClickHouseConnection;
+use Vaslv\EloquentClickHouse\ClickHouseConnector;
 
 /**
  * statement()/unprepared()/cursor() must route to the smi2 client instead of inheriting the

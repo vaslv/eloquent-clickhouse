@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Timeleads\EloquentClickHouse\Tests;
+namespace Vaslv\EloquentClickHouse\Tests;
 
 use ClickHouseDB\Client;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use RuntimeException;
-use Timeleads\EloquentClickHouse\ClickHouseConnection;
-use Timeleads\EloquentClickHouse\SchemaGrammar;
+use Vaslv\EloquentClickHouse\ClickHouseConnection;
+use Vaslv\EloquentClickHouse\SchemaGrammar;
 
 /**
  * Compiled-DDL assertions for the schema grammar. No database required: Blueprint::toSql()

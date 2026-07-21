@@ -26,7 +26,7 @@ See [.github/workflows/compatibility.yml](./.github/workflows/compatibility.yml)
 ## Installation
 
 ```bash
-composer require timeleads/eloquent-clickhouse
+composer require vaslv/eloquent-clickhouse
 ```
 
 ## Configuration

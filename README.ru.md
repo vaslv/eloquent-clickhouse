@@ -27,7 +27,7 @@ Laravel Eloquent драйвер для ClickHouse.
 ## Установка
 
 ```bash
-composer require timeleads/eloquent-clickhouse
+composer require vaslv/eloquent-clickhouse
 ```
 
 ## Настройка

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Timeleads\EloquentClickHouse\Tests\Integration;
+namespace Vaslv\EloquentClickHouse\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use Timeleads\EloquentClickHouse\ClickHouseConnection;
-use Timeleads\EloquentClickHouse\ClickHouseConnector;
+use Vaslv\EloquentClickHouse\ClickHouseConnection;
+use Vaslv\EloquentClickHouse\ClickHouseConnector;
 
 /**
  * The configured database must actually be selected on the wire. The smi2 client ignores a

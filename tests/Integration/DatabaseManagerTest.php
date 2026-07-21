@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Timeleads\EloquentClickHouse\Tests\Integration;
+namespace Vaslv\EloquentClickHouse\Tests\Integration;
 
 use ClickHouseDB\Client;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\DatabaseManager;
 use PHPUnit\Framework\TestCase;
-use Timeleads\EloquentClickHouse\ClickHouseConnection;
-use Timeleads\EloquentClickHouse\ServiceProvider;
+use Vaslv\EloquentClickHouse\ClickHouseConnection;
+use Vaslv\EloquentClickHouse\ServiceProvider;
 
 /**
  * Resolves the clickhouse connection through a real Illuminate DatabaseManager

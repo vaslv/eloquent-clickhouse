@@ -1,6 +1,6 @@
 <?php
 
-namespace Timeleads\EloquentClickHouse;
+namespace Vaslv\EloquentClickHouse;
 
 use ClickHouseDB\Client;
 use Exception;

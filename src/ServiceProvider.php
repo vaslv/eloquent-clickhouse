@@ -1,6 +1,6 @@
 <?php
 
-namespace Timeleads\EloquentClickHouse;
+namespace Vaslv\EloquentClickHouse;
 
 class ServiceProvider extends \Illuminate\Support\ServiceProvider
 {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Timeleads\EloquentClickHouse\Tests;
+namespace Vaslv\EloquentClickHouse\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Timeleads\EloquentClickHouse\Processor;
+use Vaslv\EloquentClickHouse\Processor;
 
 final class ProcessorTest extends TestCase
 {

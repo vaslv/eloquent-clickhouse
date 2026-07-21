@@ -1,5 +1,5 @@
 {
-    "name": "timeleads/eloquent-clickhouse",
+    "name": "vaslv/eloquent-clickhouse",
     "description": "Laravel Eloquent driver for ClickHouse",
     "type": "library",
     "license": "MIT",
@@ -20,12 +20,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Timeleads\\EloquentClickHouse\\": "src/"
+            "Vaslv\\EloquentClickHouse\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Timeleads\\EloquentClickHouse\\Tests\\": "tests/"
+            "Vaslv\\EloquentClickHouse\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -37,7 +37,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Timeleads\\EloquentClickHouse\\ServiceProvider"
+                "Vaslv\\EloquentClickHouse\\ServiceProvider"
             ]
         }
     }

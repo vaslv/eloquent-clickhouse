@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Timeleads\EloquentClickHouse\Tests\Integration;
+namespace Vaslv\EloquentClickHouse\Tests\Integration;
 
 use ClickHouseDB\Client;
 use PHPUnit\Framework\TestCase;
-use Timeleads\EloquentClickHouse\ClickHouseConnection;
-use Timeleads\EloquentClickHouse\ClickHouseConnector;
+use Vaslv\EloquentClickHouse\ClickHouseConnection;
+use Vaslv\EloquentClickHouse\ClickHouseConnector;
 
 /**
  * End-to-end smoke tests against a real ClickHouse server (see docker-compose.yml).

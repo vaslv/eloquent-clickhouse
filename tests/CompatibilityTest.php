@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Timeleads\EloquentClickHouse\Tests;
+namespace Vaslv\EloquentClickHouse\Tests;
 
 use ClickHouseDB\Client;
 use Illuminate\Container\Container;
@@ -16,10 +16,10 @@ use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionType;
 use ReflectionUnionType;
-use Timeleads\EloquentClickHouse\ClickHouseConnection;
-use Timeleads\EloquentClickHouse\QueryGrammar;
-use Timeleads\EloquentClickHouse\SchemaGrammar;
-use Timeleads\EloquentClickHouse\ServiceProvider;
+use Vaslv\EloquentClickHouse\ClickHouseConnection;
+use Vaslv\EloquentClickHouse\QueryGrammar;
+use Vaslv\EloquentClickHouse\SchemaGrammar;
+use Vaslv\EloquentClickHouse\ServiceProvider;
 
 final class CompatibilityTest extends TestCase
 {

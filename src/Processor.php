@@ -1,6 +1,6 @@
 <?php
 
-namespace Timeleads\EloquentClickHouse;
+namespace Vaslv\EloquentClickHouse;
 
 use Illuminate\Database\Query\Processors\Processor as BaseProcessor;
 

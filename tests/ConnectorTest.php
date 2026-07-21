@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Timeleads\EloquentClickHouse\Tests;
+namespace Vaslv\EloquentClickHouse\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Timeleads\EloquentClickHouse\ClickHouseConnector;
+use Vaslv\EloquentClickHouse\ClickHouseConnector;
 
 /**
  * Config-mapping assertions for the connector. connect() needs a live server (it pings),

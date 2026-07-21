@@ -1,12 +1,12 @@
 <?php
 
-namespace Timeleads\EloquentClickHouse;
+namespace Vaslv\EloquentClickHouse;
 
 use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use RuntimeException;
-use Timeleads\EloquentClickHouse\Concerns\EscapesClickHouseStrings;
+use Vaslv\EloquentClickHouse\Concerns\EscapesClickHouseStrings;
 
 class QueryGrammar extends PostgresGrammar
 {
