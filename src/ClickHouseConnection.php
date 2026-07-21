@@ -123,20 +123,31 @@ class ClickHouseConnection extends Connection
 
     public function cursor($query, $bindings = [], $useReadPdo = true, array $fetchUsing = []): Generator
     {
-        // Goes through run() like every other query method, so cursor queries are
-        // logged, fire QueryExecuted, wrap failures in QueryException and get the
-        // lost-connection retry. Nothing is lost by fetching eagerly: the smi2 HTTP
-        // client buffers the whole result anyway.
-        $rows = $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
+        // Stream rows through smi2's selectGenerator (JSONEachRow over a php://temp
+        // stream that spills to disk past 2MB), so a large cursor holds one decoded row
+        // in memory instead of the whole result set — which is exactly why callers reach
+        // for cursor(). The generator is primed inside run() so the HTTP request (and any
+        // connection failure) still gets logging, QueryException wrapping and the
+        // lost-connection retry; only per-row iteration happens outside run().
+        $generator = $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
             if ($this->pretending()) {
-                return [];
+                return (function () {
+                    yield from [];
+                })();
             }
 
-            return $this->client($useReadPdo)->select($this->inlineBindings($query, $bindings))->rows();
+            $rows = $this->client($useReadPdo)->selectGenerator($this->inlineBindings($query, $bindings));
+            $rows->current(); // Force the request now, inside run()'s protection.
+
+            return $rows;
         });
 
-        foreach ($rows as $row) {
-            yield $row;
+        // Drive the primed generator through the Iterator protocol rather than
+        // `yield from`: the latter rewinds, which throws on an already-started (or
+        // exhausted, for an empty result) generator. current()/next() do not.
+        while ($generator->valid()) {
+            yield $generator->key() => $generator->current();
+            $generator->next();
         }
     }
 
