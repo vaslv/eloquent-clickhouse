@@ -109,6 +109,44 @@ final class QueryGrammarTest extends TestCase
         self::assertSame("select 'O''Brien'", $grammar->substituteBindingsIntoRawSql('select ?', ["O'Brien"]));
     }
 
+    public function test_null_binding_inlines_as_null_not_question_mark(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        // A genuine null binding must become NULL, not the literal string '?'.
+        self::assertSame('select NULL', $grammar->substituteBindingsIntoRawSql('select ?', [null]));
+        self::assertSame(
+            "insert into t values (NULL, 'x')",
+            $grammar->substituteBindingsIntoRawSql('insert into t values (?, ?)', [null, 'x']),
+        );
+    }
+
+    public function test_parameter_preserves_float_precision(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        // (string) 0.1+0.2 rounds to "0.3" under precision=14; the value must survive intact.
+        self::assertSame('0.30000000000000004', (string) $grammar->parameter(0.1 + 0.2));
+        self::assertSame('1.5', (string) $grammar->parameter(1.5));
+    }
+
+    public function test_parameter_maps_non_finite_floats_to_clickhouse_literals(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        self::assertSame('inf', $grammar->parameter(INF));
+        self::assertSame('-inf', $grammar->parameter(-INF));
+        self::assertSame('nan', $grammar->parameter(NAN));
+    }
+
+    public function test_identifier_with_backslash_is_escaped(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        // A column name ending in a backslash must not escape its own closing quote.
+        self::assertSame('"col\\\\"', $grammar->wrap('col\\'));
+    }
+
     public function test_substitute_bindings_ignores_placeholders_inside_literals(): void
     {
         $grammar = $this->connection()->getQueryGrammar();

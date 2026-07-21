@@ -80,8 +80,23 @@ class QueryGrammar extends PostgresGrammar
             return $this->escapeClickHouseString($value);
         }
 
-        if (is_int($value) || is_float($value)) {
+        if (is_int($value)) {
             return $value;
+        }
+
+        if (is_float($value)) {
+            if (is_nan($value)) {
+                return 'nan';
+            }
+
+            if (is_infinite($value)) {
+                return $value > 0 ? 'inf' : '-inf';
+            }
+
+            // (string) casts a float with the `precision` ini (default 14), which
+            // silently rounds Float64 values on the way into SQL. json_encode uses
+            // serialize_precision (-1: shortest round-trip), preserving the value.
+            return json_encode($value);
         }
 
         return $this->escapeClickHouseString((string) $value);
@@ -235,23 +250,55 @@ class QueryGrammar extends PostgresGrammar
      */
     public function substituteBindingsIntoRawSql($sql, $bindings): string
     {
+        // Nothing to substitute: grammar-compiled statements arrive with values
+        // already inlined by parameter(), so the placeholder scan below would walk
+        // multi-megabyte bulk-insert SQL to replace nothing. Skip it.
+        if ($bindings === [] || ! str_contains($sql, '?')) {
+            return $sql;
+        }
+
+        $bindings = array_values($bindings);
         $query = '';
         $bindingIndex = 0;
-        $isStringLiteral = false;
+        // The current quoting context, or null when outside any quote. A '?' is a
+        // binding placeholder ONLY outside quotes — never inside a single-quoted
+        // string literal, nor inside a double-quoted or backtick-quoted identifier.
+        // ClickHouse processes backslash escapes and doubled quotes in all three,
+        // so a '?' embedded in a quoted identifier must not be substituted (that
+        // would let a bound value break out of the identifier into executable SQL).
+        $quote = null;
         $length = strlen($sql);
 
         for ($i = 0; $i < $length; $i++) {
             $char = $sql[$i];
             $nextChar = $sql[$i + 1] ?? null;
 
-            if (in_array($char.$nextChar, ["\\'", "''", '??'], true)) {
-                $query .= $char.$nextChar;
-                $i++;
-            } elseif ($char === "'") {
+            if ($quote !== null) {
+                if ($char === '\\' && $nextChar !== null) {
+                    $query .= $char.$nextChar;
+                    $i++;
+                } elseif ($char === $quote && $nextChar === $quote) {
+                    $query .= $char.$nextChar;
+                    $i++;
+                } else {
+                    $query .= $char;
+                    if ($char === $quote) {
+                        $quote = null;
+                    }
+                }
+            } elseif ($char === "'" || $char === '"' || $char === '`') {
+                $quote = $char;
                 $query .= $char;
-                $isStringLiteral = ! $isStringLiteral;
-            } elseif ($char === '?' && ! $isStringLiteral) {
-                $query .= (string) $this->parameter($bindings[$bindingIndex++] ?? '?');
+            } elseif ($char === '?' && $nextChar === '?') {
+                // Literal '??' stays as-is, matching the framework scanner.
+                $query .= '??';
+                $i++;
+            } elseif ($char === '?') {
+                // array_key_exists (not ??) so a genuine null binding inlines as
+                // NULL rather than being treated as a missing binding.
+                $query .= array_key_exists($bindingIndex, $bindings)
+                    ? (string) $this->parameter($bindings[$bindingIndex++])
+                    : '?';
             } else {
                 $query .= $char;
             }
