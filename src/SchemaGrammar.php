@@ -7,8 +7,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Grammars\Grammar;
 use Illuminate\Support\Fluent;
 use RuntimeException;
-use Vaslv\EloquentClickHouse\Concerns\EscapesClickHouseStrings;
 use UnitEnum;
+use Vaslv\EloquentClickHouse\Concerns\EscapesClickHouseStrings;
 
 use function Illuminate\Support\enum_value;
 
