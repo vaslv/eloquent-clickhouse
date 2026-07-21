@@ -404,4 +404,20 @@ final class QueryGrammarTest extends TestCase
 
         $this->connection()->table('events')->where('payload->name', 'x')->toSql();
     }
+
+    /**
+     * ClickHouse's second-precision DateTime column rejects a fractional-seconds
+     * string, and Carbon carries microseconds, so the driver formats to whole
+     * seconds by default. Sub-second precision into DateTime64 columns is a known
+     * limitation (documented in the README); this pins the current behavior.
+     */
+    public function test_datetime_is_formatted_to_whole_seconds(): void
+    {
+        $grammar = $this->connection()->getQueryGrammar();
+
+        self::assertSame(
+            "'2026-01-02 03:04:05'",
+            $grammar->parameter(new \DateTimeImmutable('2026-01-02 03:04:05.123456')),
+        );
+    }
 }

@@ -188,6 +188,10 @@ DB::connection('clickhouse')->statement('OPTIMIZE TABLE events FINAL');
 - Values are inlined into SQL with ClickHouse-safe escaping (the HTTP interface has no
   server-side prepared statements). Because values are inlined, they also appear in
   `toSql()`, query-log entries and exception messages — keep that in mind for secrets/PII.
+- `DateTimeInterface` values are formatted to whole seconds (`Y-m-d H:i:s`). ClickHouse's
+  second-precision `DateTime` column rejects a fractional-seconds string and Carbon always
+  carries microseconds, so sub-second precision is not written even to `DateTime64` columns.
+  To store sub-second timestamps, pass a preformatted string (e.g. `->format('Y-m-d H:i:s.u')`).
 - Read/write connection splitting is supported: a connection config with `read`/`write`
   blocks routes `useReadPdo` selects to the read host and writes to the write host.
 - `cursor()` streams rows one at a time (smi2 `selectGenerator`), so it stays memory-bounded
