@@ -186,7 +186,15 @@ DB::connection('clickhouse')->statement('OPTIMIZE TABLE events FINAL');
 - The package registers the `clickhouse` database driver through its service provider.
 - `select()` returns rows from `smi2/phpclickhouse` as associative arrays.
 - Values are inlined into SQL with ClickHouse-safe escaping (the HTTP interface has no
-  server-side prepared statements).
+  server-side prepared statements). Because values are inlined, they also appear in
+  `toSql()`, query-log entries and exception messages — keep that in mind for secrets/PII.
+- Read/write connection splitting is supported: a connection config with `read`/`write`
+  blocks routes `useReadPdo` selects to the read host and writes to the write host.
+- `cursor()` streams rows one at a time (smi2 `selectGenerator`), so it stays memory-bounded
+  on large result sets.
+- `insertOrIgnore()`, `upsert()` and Postgres-style JSON wheres (`whereJsonContains`, the
+  `->` arrow selector, ...) throw a clear exception rather than emitting SQL ClickHouse
+  cannot run. For JSON, use a raw where with ClickHouse's `JSONExtractString` / `JSONHas`.
 - Transactions are no-op methods because ClickHouse does not provide transactional
   behavior like traditional OLTP databases.
 
