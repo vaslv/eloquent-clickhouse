@@ -2,9 +2,11 @@
 
 **English** | [Русский](README.ru.md)
 
+[![Packagist Version](https://img.shields.io/packagist/v/vaslv/eloquent-clickhouse)](https://packagist.org/packages/vaslv/eloquent-clickhouse)
+[![CI](https://github.com/vaslv/eloquent-clickhouse/actions/workflows/compatibility.yml/badge.svg)](https://github.com/vaslv/eloquent-clickhouse/actions/workflows/compatibility.yml)
+[![Plumb score](https://plumbphp.dev/badges/vaslv/eloquent-clickhouse/composite.svg)](https://plumbphp.dev/vaslv/eloquent-clickhouse)
 ![Laravel](https://img.shields.io/badge/Laravel-12%20%7C%2013-FF2D20)
 ![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4)
-![CI](https://img.shields.io/badge/CI-compatibility%20checks-2EA44F)
 
 Laravel Eloquent driver for ClickHouse.
 
