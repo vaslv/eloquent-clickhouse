@@ -61,6 +61,9 @@
         "sort-packages": true,
         "allow-plugins": {
             "vaslv/composer-release": true
+        },
+        "audit": {
+            "abandoned": "report"
         }
     },
     "minimum-stability": "stable",
