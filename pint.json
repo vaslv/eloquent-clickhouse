@@ -1,0 +1,7 @@
+{
+  "$schema": "https://raw.githubusercontent.com/laravel/pint/main/resources/schema.json",
+  "preset": "laravel",
+  "rules": {
+    "single_trait_insert_per_statement": true
+  }
+}
