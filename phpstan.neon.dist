@@ -22,8 +22,6 @@ parameters:
           message: '#Access to an undefined property Illuminate\\Support\\Fluent::#'
         - identifier: property.notFound
           message: '#Access to an undefined property Illuminate\\Database\\Schema\\ColumnDefinition::#'
-        - identifier: nullCoalesce.property
-          message: '#Property Illuminate\\Database\\Schema\\Blueprint::\$engine#'
         # The driver intentionally adapts a non-PDO smi2 Client into the
         # PDO-typed framework connection surface. These signature mismatches are
         # by design, not defects.
