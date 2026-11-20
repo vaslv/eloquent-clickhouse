@@ -19,7 +19,7 @@ final class CursorTest extends TestCase
     protected function setUp(): void
     {
         if (! getenv('CLICKHOUSE_HOST')) {
-            $this->markTestSkipped('CLICKHOUSE_HOST not set — integration environment unavailable.');
+            $this->fail('CLICKHOUSE_HOST not set — integration tests require a live ClickHouse server.');
         }
 
         $config = [

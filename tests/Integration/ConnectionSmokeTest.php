@@ -13,15 +13,15 @@ use Vaslv\EloquentClickHouse\ClickHouseConnector;
  * End-to-end smoke tests against a real ClickHouse server (see docker-compose.yml).
  *
  * These exercise the connector + connection directly, proving the Docker test
- * environment is fully usable. They are skipped automatically when CLICKHOUSE_HOST
- * is not set, so the unit suite still runs anywhere.
+ * environment is fully usable. They fail when CLICKHOUSE_HOST is not set, so a
+ * missing server is never reported as green; the unit suite excludes them.
  */
 final class ConnectionSmokeTest extends TestCase
 {
     protected function setUp(): void
     {
         if (! getenv('CLICKHOUSE_HOST')) {
-            $this->markTestSkipped('CLICKHOUSE_HOST not set — integration environment unavailable.');
+            $this->fail('CLICKHOUSE_HOST not set — integration tests require a live ClickHouse server.');
         }
     }
 

@@ -38,9 +38,10 @@ Other helpers: `make sh` (shell in PHP container), `make ch` (ClickHouse client)
 ## Test suites
 
 - **unit** (`composer test`) — no database required; reflection-based compatibility checks.
-  This is what CI runs.
 - **integration** (`composer test:integration`) — talks to the live ClickHouse server.
-  Tests skip automatically when `CLICKHOUSE_HOST` is unset, so the unit suite runs anywhere.
+  Tests fail when `CLICKHOUSE_HOST` is unset, so a missing server is never reported as green.
+
+CI runs both suites (`composer test:all`).
 
 ## PHP / Laravel matrix
 
