@@ -19,11 +19,14 @@ SemVer guarantees cover the following; everything else under `src/` is internal.
 
 ## [Unreleased]
 
+## [2.0.4] - 2026-11-20
+
 ### Changed
 
 - Integration tests fail instead of being skipped when `CLICKHOUSE_HOST` is not set.
 - Development tooling: `composer lint`, `composer lint:test` and `composer check` scripts,
-  `phpunit.xml.dist`, `pint.json`, `.editorconfig`; CI also runs `composer audit` and Pint.
+  `phpunit.xml.dist`, `pint.json`, `.editorconfig`; CI also runs `composer audit`
+  (abandoned packages are reported, not failed) and Pint.
 
 ### Security
 
@@ -134,7 +137,8 @@ SemVer guarantees cover the following; everything else under `src/` is internal.
 
 - Initial release.
 
-[Unreleased]: https://github.com/vaslv/eloquent-clickhouse/compare/2.0.3...HEAD
+[Unreleased]: https://github.com/vaslv/eloquent-clickhouse/compare/2.0.4...HEAD
+[2.0.4]: https://github.com/vaslv/eloquent-clickhouse/compare/2.0.3...2.0.4
 [2.0.3]: https://github.com/vaslv/eloquent-clickhouse/compare/2.0.2...2.0.3
 [2.0.2]: https://github.com/vaslv/eloquent-clickhouse/compare/2.0.1...2.0.2
 [2.0.1]: https://github.com/vaslv/eloquent-clickhouse/compare/2.0.0...2.0.1
