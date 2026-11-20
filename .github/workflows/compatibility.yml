@@ -99,6 +99,12 @@ jobs:
       - name: Install dependencies
         run: composer update --no-interaction --prefer-dist
 
+      - name: Security audit
+        run: composer audit
+
+      - name: Code style (Pint)
+        run: composer lint:test
+
       # Static analysis is pinned to one PHP + the highest deps on purpose: PHPStan's
       # verdicts (and which ignore patterns match) depend on the installed library
       # versions, so running it across the test matrix would produce spurious failures.
