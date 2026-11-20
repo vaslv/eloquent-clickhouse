@@ -211,6 +211,7 @@ make up               # start ClickHouse + PHP containers
 make test             # unit tests
 make test-integration # integration tests against the live ClickHouse
 make test-all         # both
+make check            # validate, audit, Pint, PHPStan and all tests
 ```
 
 Run compatibility checks locally:

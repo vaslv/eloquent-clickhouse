@@ -36,11 +36,19 @@
         }
     },
     "scripts": {
-        "format": "pint",
+        "lint": "pint",
+        "lint:test": "pint --test",
         "analyse": "phpstan analyse --memory-limit=512M",
         "test": "phpunit --testsuite unit",
         "test:integration": "phpunit --testsuite integration",
-        "test:all": "phpunit"
+        "test:all": "phpunit",
+        "check": [
+            "@composer validate --strict",
+            "@composer audit",
+            "@lint:test",
+            "@analyse",
+            "@test:all"
+        ]
     },
     "extra": {
         "laravel": {

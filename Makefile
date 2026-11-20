@@ -30,11 +30,14 @@ test: ## Run unit tests
 test-integration: ## Run integration tests (requires ClickHouse up)
 	$(PHP) composer test:integration
 
+check: ## Run all checks (validate, audit, Pint, PHPStan, all tests)
+	$(PHP) composer check
+
 test-all: ## Run unit + integration tests
 	$(PHP) composer test:all
 
-pint: ## Run Laravel Pint formatter
-	$(PHP) composer format
+lint: ## Fix code style with Laravel Pint
+	$(PHP) composer lint
 
 sh: ## Open a shell in the PHP container
 	$(COMPOSE) exec php bash
@@ -45,4 +48,4 @@ ch: ## Open the ClickHouse client
 logs: ## Tail ClickHouse logs
 	$(COMPOSE) logs -f clickhouse
 
-.PHONY: help build up down clean install update test test-integration test-all pint sh ch logs
+.PHONY: help build up down clean install update test test-integration test-all check lint sh ch logs

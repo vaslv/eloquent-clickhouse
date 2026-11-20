@@ -214,6 +214,7 @@ make up               # поднять контейнеры ClickHouse + PHP
 make test             # юнит-тесты
 make test-integration # интеграционные тесты против живого ClickHouse
 make test-all         # и те, и другие
+make check            # validate, audit, Pint, PHPStan и все тесты
 ```
 
 Локальные проверки совместимости:
