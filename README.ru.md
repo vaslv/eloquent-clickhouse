@@ -217,19 +217,17 @@ make test-all         # и те, и другие
 make check            # validate, audit, Pint, PHPStan и все тесты
 ```
 
-Локальные проверки совместимости:
+Composer и PHP запускаются внутри контейнера, а не на хосте. Проверка минимального набора
+зависимостей Laravel 12:
 
 ```bash
-composer update
-composer test
+docker compose exec -T php composer update --prefer-lowest --with="illuminate/database:^12.0"
+make test-all
 ```
 
-Проверка минимального набора зависимостей Laravel 12:
-
-```bash
-composer update --prefer-lowest
-composer test
-```
+В CI минимальный набор проверяется на PHP 8.2; для точного совпадения пересоберите контейнер
+с этой версией (см. [docker/README.md](docker/README.md)). После проверки верните свежие
+зависимости командой `make update`.
 
 ## Лицензия
 

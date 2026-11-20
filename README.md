@@ -214,19 +214,17 @@ make test-all         # both
 make check            # validate, audit, Pint, PHPStan and all tests
 ```
 
-Run compatibility checks locally:
+Run Composer and PHP inside the container, not on the host. To verify the lowest supported
+Laravel 12 dependency set:
 
 ```bash
-composer update
-composer test
+docker compose exec -T php composer update --prefer-lowest --with="illuminate/database:^12.0"
+make test-all
 ```
 
-To verify the lowest supported Laravel 12 dependency set:
-
-```bash
-composer update --prefer-lowest
-composer test
-```
+CI runs the lowest set on PHP 8.2; rebuild the container with that version for exact parity
+(see [docker/README.md](docker/README.md)). Restore the highest dependencies afterwards with
+`make update`.
 
 ## License
 
