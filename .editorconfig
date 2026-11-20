@@ -1,0 +1,24 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[{docker-compose,compose}*.{yml,yaml}]
+indent_size = 4
+
+# Uncomment in projects whose frontend and templates already use 2 spaces.
+# Do not enable it in an existing project without reformatting, or indentation
+# will diverge between old and new files.
+# [*.{vue,blade.php,js,ts,css,json}]
+# indent_size = 2
