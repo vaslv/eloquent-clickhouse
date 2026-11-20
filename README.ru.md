@@ -2,6 +2,8 @@
 
 [English](README.md) | **Русский**
 
+> Перевод. Канонической версией считается [английский README](README.md); при расхождении верна она.
+
 [![Packagist Version](https://img.shields.io/packagist/v/vaslv/eloquent-clickhouse)](https://packagist.org/packages/vaslv/eloquent-clickhouse)
 [![CI](https://github.com/vaslv/eloquent-clickhouse/actions/workflows/compatibility.yml/badge.svg)](https://github.com/vaslv/eloquent-clickhouse/actions/workflows/compatibility.yml)
 [![Plumb score](https://plumbphp.dev/badges/vaslv/eloquent-clickhouse/composite.svg)](https://plumbphp.dev/vaslv/eloquent-clickhouse)
